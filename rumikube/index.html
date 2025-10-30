@@ -2,31 +2,55 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rummikub Classique (Solo)</title>
-    <link rel="stylesheet" href="css/styles.css"> 
+    <title>Rummikub (Drag & Drop)</title>
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        a.back-link {
+            display: inline-block;
+            margin-top: 25px;
+            color: #00ff99;
+            text-decoration: none;
+            font-size: 1.2em;
+            font-family: Arial, sans-serif;
+            background-color: #2e2e4d;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 2px solid #6441a5;
+        }
+        a.back-link:hover {
+            background-color: #44446a;
+        }
+    </style>
 </head>
 <body>
+    <div class="main-container">
+        <h1>Rummikub</h1>
+        <div class="game-container">
+            <div class="player-container">
+                <h2>Mon Chevalet</h2>
+                <div class="player-hand" id="player-hand">
+                    </div>
+                <div class="player-actions">
+                    <button id="draw-button">Piocher</button>
+                    <button id="sort-group-button">Trier par Groupe</button>
+                    <button id="sort-run-button">Trier par Série</button>
+                </div>
+            </div>
+            
+            <div class="board-container">
+                <h2>Tapis Central</h2>
+                <div class="board" id="board">
+                    </div>
+                <button id="validate-board-button">Valider le Tapis</button>
+            </div>
+        </div>
 
-    <h1>Rummikub (Règles Classiques Solo)</h1>
-    
-    <div id="status">Générez un nouveau jeu.</div>
-    <div class="info">Règle d'Ouverture : Le premier coup doit valoir au moins 30 points.</div>
-    
-    <div id="controls">
-        <button id="newGameBtn">Nouvelle Partie</button>
-        <button id="drawTileBtn" disabled>Piocher (Tour Passé)</button>
-        <button id="validateBtn" disabled>Valider Pose (Fin de Tour)</button>
+        <a href="../index.html" class="back-link">Retour au menu</a>
     </div>
-
-    <h2>Mon Chevalet</h2>
-    <div id="hand-container" class="tile-container"></div>
     
-    <h2>Tapis Central (Zone de Pose)</h2>
-    <div id="board-container" class="tile-container"></div>
-    
-    <a href="../index.html">Retour au menu</a>
-
     <script src="js/game.js"></script> 
 </body>
 </html>
