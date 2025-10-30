@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jeu d'Échecs</title>
+    <title>Jeu d'Échecs (Flèches)</title>
 
     <link rel="stylesheet" 
         href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" 
@@ -11,7 +11,7 @@
         crossorigin="anonymous">
     
     <style>
-        /* Thème sombre cohérent */
+        /* Thème sombre cohérent (comme dans votre tutoriel) */
         body {
             font-family: Arial, sans-serif;
             background-color: #1a1a2e;
@@ -38,10 +38,10 @@
             font-size: 1.2em;
             margin: 15px 0;
             min-height: 25px;
-            color: #FF8C00; /* Orange rétro */
+            color: #FF8C00; 
         }
 
-        /* Boutons et lien */
+        /* Styles des boutons et lien */
         button {
             background-color: #00ff99;
             border: none;
@@ -91,13 +91,14 @@
         const startBtn = $('#startBtn');
         const resetBtn = $('#resetBtn');
         
-        let board = null;      // Variable pour l'affichage du plateau
-        let game = new Chess(); // Variable pour la logique du jeu (chess.js)
-        let arrows = null;     // Variable pour les flèches (chessboard-arrows)
+        let board = null;      // Pour l'affichage
+        let game = new Chess(); // Pour la logique
+        let arrows = null;     // Pour les flèches
 
-        // --- LOGIQUE DE JEU (Identique) ---
+        // --- LOGIQUE DE JEU ---
         
         function onDragStart (source, piece, position, orientation) {
+            // Empêche de bouger les pièces si la partie est terminée ou si ce n'est pas le tour de Blanc
             if (game.game_over() === true || (game.turn() === 'b')) { 
                 return false;
             }
@@ -107,20 +108,23 @@
             let move = game.move({
                 from: source,
                 to: target,
-                promotion: 'q' 
+                promotion: 'q' // Promotion forcée en reine pour simplifier
             });
 
+            // Coup illégal
             if (move === null) return 'snapback';
 
-            // Efface les flèches à chaque nouveau coup
+            // Efface les flèches après un coup
             arrows.clearArrows();
             updateStatus();
         }
 
+        // Met à jour la position du plateau après un coup réussi (visuel)
         function onSnapEnd () {
             board.position(game.fen());
         }
         
+        // Met à jour le statut (Échec, Mat, Nulle, tour du joueur)
         function updateStatus() {
             let status = '';
             let moveColor = game.turn() === 'b' ? 'Noir' : 'Blanc';
@@ -141,11 +145,11 @@
         function resetGame() {
              game.reset();
              board.position('start');
-             arrows.clearArrows(); // Important pour effacer les flèches
+             arrows.clearArrows();
              updateStatus();
         }
 
-        // --- CONFIGURATION DU PLATEAU ---
+        // --- CONFIGURATION DU PLATEAU ET INITIALISATION ---
 
         const cfg = {
             draggable: true,
@@ -159,9 +163,10 @@
         board = Chessboard('game-container', cfg);
         
         // Initialise la librairie des flèches
-        arrows = new ChessboardArrows(board);
+        // Le ID est celui du conteneur du plateau
+        arrows = new ChessboardArrows('game-container'); 
         
-        // --- Événements ---
+        // --- Événements des boutons ---
         startBtn.on('click', resetGame);
         resetBtn.on('click', () => {
              board.position('start');
