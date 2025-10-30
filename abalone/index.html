@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abalone Simplifié</title>
+    <title>Abalone Original (Hexagonal)</title>
     <style>
         /* Thème sombre cohérent */
         body {
@@ -13,72 +13,74 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             min-height: 100vh;
             margin: 0;
             padding: 20px;
             user-select: none;
         }
         h1 {
-            color: #00ff99; /* Vert néon */
+            color: #00ff99;
+            margin-bottom: 5px;
         }
         
-        /* Plateau de jeu (carré 5x5 pour la simplification) */
-        #board {
-            display: grid;
-            grid-template-columns: repeat(5, 60px);
-            grid-template-rows: repeat(5, 60px);
-            border: 4px solid #6441a5;
+        #board-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
             margin: 20px 0;
+            /* La bordure simule le plateau */
+            border: 5px solid #6441a5; 
+            border-radius: 10px;
+            background-color: #333;
         }
         
-        /* Case (trou) */
-        .square {
-            width: 60px;
-            height: 60px;
-            background-color: #2e2e4d;
+        /* Style des positions (trous) */
+        .position {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background-color: #222; /* Couleur du trou */
             border: 1px solid #444;
+            cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
-            position: relative;
+            z-index: 10;
         }
         
-        /* Bille (Piece) */
+        /* Style des billes */
         .marble {
-            width: 50px;
-            height: 50px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             cursor: pointer;
+            z-index: 20;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-            transition: border 0.1s;
         }
-        .white { background-color: #fff; border: 3px solid #ccc; } /* Joueur 1 (Blanc) */
-        .black { background-color: #000; border: 3px solid #333; } /* Joueur 2 (Noir) */
+        .white { background-color: #fff; border: 2px solid #ccc; }
+        .black { background-color: #000; border: 2px solid #111; }
         
         /* Bille sélectionnée */
         .selected { 
-            border: 4px solid #FF8C00; /* Orange rétro pour la sélection */
-            transform: scale(1.1);
+            box-shadow: 0 0 15px #FF8C00; /* Orange rétro */
+            border-color: #FF8C00 !important;
         }
         
-        /* Indicateur de tour et statut */
+        /* Statut et Compteurs */
         #status {
             font-size: 1.2em;
             margin: 15px 0;
             min-height: 30px;
             color: #FFDC00;
-            text-align: center;
         }
-        
-        /* Compteurs */
         #counters {
             display: flex;
             justify-content: space-around;
-            width: 300px;
+            width: 400px;
             margin-bottom: 10px;
         }
-
+        
         /* Boutons et lien */
         button {
             background-color: #00ff99;
@@ -102,288 +104,359 @@
 </head>
 <body>
 
-    <h1>Abalone (Simplifié 5x5)</h1>
+    <h1>Abalone (Plateau Hexagonal 61 Trous)</h1>
     
     <div id="counters">
-        <span id="white-out">Billes Blanches Éjectées : 0/2</span>
-        <span id="black-out">Billes Noires Éjectées : 0/2</span>
+        <span id="white-out">Billes Blanches Éjectées : 0/6</span>
+        <span id="black-out">Billes Noires Éjectées : 0/6</span>
     </div>
     
     <div id="status"></div>
     
-    <div id="board">
+    <div id="board-container">
         </div>
     
-    <button id="restartButton">Nouvelle Partie</button>
-    <a href="../index.html">Retour au menu</a>
+    <div>
+        <button id="restartButton">Nouvelle Partie</button>
+        <a href="../index.html">Retour au menu</a>
+    </div>
 
     <script>
-        const SIZE = 5;
-        const WIN_COUNT = 2; // Gagne en éjectant 2 billes
-        const boardElement = document.getElementById('board');
+        // --- CONFIGURATION DE LA GRILLE HEXAGONALE (Coord. Axiales) ---
+        const boardContainer = document.getElementById('board-container');
         const statusElement = document.getElementById('status');
-        const restartButton = document.getElementById('restartButton');
         const whiteOutCounter = document.getElementById('white-out');
         const blackOutCounter = document.getElementById('black-out');
+        const restartButton = document.getElementById('restartButton');
 
-        let boardState = [];
+        const TILE_RADIUS = 30; // Rayon pour le positionnement
+        const MARGIN_X = 250;
+        const MARGIN_Y = 250;
+        const WIN_COUNT = 6; // Règle standard : 6 billes éjectées
+
+        // Map: { "q,r": {player: 'white', element: node} }
+        let boardState = {}; 
         let currentPlayer = 'white';
-        let selectedMarbles = []; // Tableau de [row, col] des billes sélectionnées
+        let selectedMarbles = []; // Tableau de [q, r] des billes sélectionnées
         let ejectedCount = { white: 0, black: 0 };
         let gameActive = false;
+        
+        // Toutes les positions q,r du plateau Abalone (A1 à I9)
+        const ALL_POSITIONS = [
+            // Ligne A
+            { q: -4, r: 4 }, { q: -3, r: 4 }, { q: -2, r: 4 }, { q: -1, r: 4 }, { q: 0, r: 4 },
+            // Ligne B
+            { q: -4, r: 3 }, { q: -3, r: 3 }, { q: -2, r: 3 }, { q: -1, r: 3 }, { q: 0, r: 3 }, { q: 1, r: 3 },
+            // Ligne C
+            { q: -4, r: 2 }, { q: -3, r: 2 }, { q: -2, r: 2 }, { q: -1, r: 2 }, { q: 0, r: 2 }, { q: 1, r: 2 }, { q: 2, r: 2 },
+            // Ligne D
+            { q: -4, r: 1 }, { q: -3, r: 1 }, { q: -2, r: 1 }, { q: -1, r: 1 }, { q: 0, r: 1 }, { q: 1, r: 1 }, { q: 2, r: 1 }, { q: 3, r: 1 },
+            // Ligne E (Centre)
+            { q: -4, r: 0 }, { q: -3, r: 0 }, { q: -2, r: 0 }, { q: -1, r: 0 }, { q: 0, r: 0 }, { q: 1, r: 0 }, { q: 2, r: 0 }, { q: 3, r: 0 }, { q: 4, r: 0 },
+            // Ligne F
+            { q: -3, r: -1 }, { q: -2, r: -1 }, { q: -1, r: -1 }, { q: 0, r: -1 }, { q: 1, r: -1 }, { q: 2, r: -1 }, { q: 3, r: -1 }, { q: 4, r: -1 },
+            // Ligne G
+            { q: -2, r: -2 }, { q: -1, r: -2 }, { q: 0, r: -2 }, { q: 1, r: -2 }, { q: 2, r: -2 }, { q: 3, r: -2 }, { q: 4, r: -2 },
+            // Ligne H
+            { q: -1, r: -3 }, { q: 0, r: -3 }, { q: 1, r: -3 }, { q: 2, r: -3 }, { q: 3, r: -3 }, { q: 4, r: -3 },
+            // Ligne I
+            { q: 0, r: -4 }, { q: 1, r: -4 }, { q: 2, r: -4 }, { q: 3, r: -4 }, { q: 4, r: -4 },
+        ];
 
-        // --- Initialisation ---
+        // Directions hexagonales (déplacement d'une bille)
+        const HEX_DIRECTIONS = [
+            { q: 1, r: 0 }, { q: 1, r: -1 }, { q: 0, r: -1 }, 
+            { q: -1, r: 0 }, { q: -1, r: 1 }, { q: 0, r: 1 }
+        ];
+
+        // --- Fonctions de Conversion et de Rendu ---
+        
+        // Convertit les coordonnées axiales (q, r) en pixels pour l'affichage
+        function hexToPixel(q, r) {
+            const x = TILE_RADIUS * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
+            const y = TILE_RADIUS * (3 / 2 * r);
+            return { x: x + MARGIN_X, y: y + MARGIN_Y };
+        }
+
+        // Initialise la position des billes de départ (position standard Abalone)
+        function initialLayout(q, r) {
+            const key = `${q},${r}`;
+            const blackZone = ["0,4", "-1,4", "-2,4", "-3,4", "-4,4", 
+                               "1,3", "0,3", "-1,3", "-2,3", "-3,3", 
+                               "2,2", "1,2", "0,2", "-1,2"]; // Lignes A, B, C avant la D
+            const whiteZone = ["4,-4", "3,-4", "2,-4", "1,-4", "0,-4",
+                               "4,-3", "3,-3", "2,-3", "1,-3", "0,-3",
+                               "4,-2", "3,-2", "2,-2", "1,-2"]; // Lignes I, H, G
+            
+            if (blackZone.includes(key)) return 'black';
+            if (whiteZone.includes(key)) return 'white';
+            return 0;
+        }
+
+        // --- Logique du Jeu ---
 
         function initializeGame() {
-            boardElement.innerHTML = '';
-            boardState = [];
+            boardContainer.innerHTML = '';
+            boardState = {};
             selectedMarbles = [];
             currentPlayer = 'white';
             ejectedCount = { white: 0, black: 0 };
             gameActive = true;
 
-            // Initialiser le boardState (Billes sur les lignes extérieures 5x5)
-            for (let r = 0; r < SIZE; r++) {
-                boardState[r] = [];
-                for (let c = 0; c < SIZE; c++) {
-                    let player = 0; // 0 = vide
-                    if (r === 0 || r === 1) { // Lignes du haut (Noir)
-                        player = 'black';
-                    } else if (r === SIZE - 1 || r === SIZE - 2) { // Lignes du bas (Blanc)
-                        player = 'white';
-                    }
-                    boardState[r][c] = player;
+            ALL_POSITIONS.forEach(pos => {
+                const { q, r } = pos;
+                const key = `${q},${r}`;
+                const pixel = hexToPixel(q, r);
+
+                // 1. Créer la position (le trou)
+                const positionElement = document.createElement('div');
+                positionElement.classList.add('position');
+                positionElement.style.left = `${pixel.x}px`;
+                positionElement.style.top = `${pixel.y}px`;
+                positionElement.dataset.q = q;
+                positionElement.dataset.r = r;
+                positionElement.addEventListener('click', () => handlePositionClick(q, r));
+                
+                // 2. Placer la bille
+                const player = initialLayout(q, r);
+                boardState[key] = { player: player, element: positionElement };
+                
+                if (player !== 0) {
+                    const marble = document.createElement('div');
+                    marble.classList.add('marble', player);
+                    positionElement.appendChild(marble);
                 }
-            }
+
+                boardContainer.appendChild(positionElement);
+            });
             
-            renderBoard();
             updateStatus();
+            updateCounters();
+            statusElement.textContent = "Blanc commence. Sélectionnez une à trois billes adjacentes.";
+        }
+
+        // Dessine la sélection et les billes
+        function renderBoard() {
+            Object.values(boardState).forEach(state => {
+                const { player, element } = state;
+                const marbleElement = element.querySelector('.marble');
+                
+                // Nettoyage de la sélection
+                if (marbleElement) {
+                    marbleElement.classList.remove('selected');
+                }
+            });
+
+            // Applique la sélection
+            selectedMarbles.forEach(([q, r]) => {
+                const key = `${q},${r}`;
+                const state = boardState[key];
+                if (state && state.element) {
+                    const marbleElement = state.element.querySelector('.marble');
+                    if (marbleElement) {
+                        marbleElement.classList.add('selected');
+                    }
+                }
+            });
             updateCounters();
         }
 
-        // Dessine la grille et les billes
-        function renderBoard() {
-            boardElement.innerHTML = '';
-            for (let r = 0; r < SIZE; r++) {
-                for (let c = 0; c < SIZE; c++) {
-                    const square = document.createElement('div');
-                    square.classList.add('square');
-                    square.dataset.row = r;
-                    square.dataset.col = c;
-                    
-                    const player = boardState[r][c];
-                    
-                    if (player !== 0) {
-                        const marble = document.createElement('div');
-                        marble.classList.add('marble', player);
-                        
-                        // Si la bille est sélectionnée, applique le style
-                        const isSelected = selectedMarbles.some(m => m[0] === r && m[1] === c);
-                        if (isSelected) {
-                            marble.classList.add('selected');
-                        }
-                        
-                        marble.addEventListener('click', () => handleSquareClick(r, c));
-                        square.appendChild(marble);
-                    } else {
-                        // Ajoute un écouteur au trou vide si une bille est sélectionnée
-                         square.addEventListener('click', () => handleSquareClick(r, c));
+        // Vérifie si une position (q, r) est sur le plateau
+        function isOnBoard(q, r) {
+            return ALL_POSITIONS.some(p => p.q === q && p.r === r);
+        }
+
+        // Vérifie si deux positions sont adjacentes
+        function isAdjacent(q1, r1, q2, r2) {
+            const dq = Math.abs(q1 - q2);
+            const dr = Math.abs(r1 - r2);
+            const ds = Math.abs((-q1 - r1) - (-q2 - r2)); // Coordonnée S
+            return (dq <= 1 && dr <= 1 && ds <= 1) && (dq + dr + ds !== 0); // Voisin direct (distance max 1)
+        }
+
+        // --- Gestion des Clics ---
+
+        function handlePositionClick(q, r) {
+            if (!gameActive) return;
+            
+            const key = `${q},${r}`;
+            const state = boardState[key];
+            const isSelected = selectedMarbles.some(m => m[0] === q && m[1] === r);
+            
+            // 1. Clic sur une bille amie (Sélection)
+            if (state.player === currentPlayer) {
+                if (isSelected) {
+                    selectedMarbles = selectedMarbles.filter(m => m[0] !== q || m[1] !== r);
+                } else if (selectedMarbles.length < 3) {
+                    // On ajoute seulement si le nouveau marbre est adjacent au groupe OU si le groupe est vide
+                    if (selectedMarbles.length === 0 || isAdjacentToGroup(q, r)) {
+                         selectedMarbles.push([q, r]);
                     }
-                    boardElement.appendChild(square);
                 }
             }
-        }
-        
-        // Met à jour le statut et les compteurs
-        function updateStatus() {
-            statusElement.textContent = gameActive 
-                ? `Au tour de ${currentPlayer.toUpperCase()}. Sélectionnez 1, 2 ou 3 billes.` 
-                : statusElement.textContent;
-        }
-        
-        function updateCounters() {
-            whiteOutCounter.textContent = `Billes Blanches Éjectées : ${ejectedCount.white}/${WIN_COUNT}`;
-            blackOutCounter.textContent = `Billes Noires Éjectées : ${ejectedCount.black}/${WIN_COUNT}`;
-        }
-
-        // --- Logique de Clic ---
-
-        function handleSquareClick(r, c) {
-            if (!gameActive) return;
-
-            const player = boardState[r][c];
-            
-            // 1. Clic sur une bille du joueur actuel (Sélection/Désélection)
-            if (player === currentPlayer) {
-                const index = selectedMarbles.findIndex(m => m[0] === r && m[1] === c);
-                
-                if (index !== -1) {
-                    selectedMarbles.splice(index, 1); // Désélectionner
-                } else if (selectedMarbles.length < 3) {
-                    // Si on clique sur une bille adjacente aux autres billes sélectionnées, on l'ajoute
-                    if (selectedMarbles.length === 0 || isAdjacent(r, c, selectedMarbles)) {
-                         selectedMarbles.push([r, c]); // Sélectionner
-                    } else {
-                         statusElement.textContent = "Les billes sélectionnées doivent être adjacentes.";
-                    }
-                }
-            } 
             // 2. Clic sur une case vide ou adverse (Mouvement)
             else if (selectedMarbles.length > 0) {
-                // Tente de faire un mouvement
-                if (tryMove(r, c)) {
-                    // Mouvement réussi, on change de tour
-                    switchTurn();
+                // Tente de trouver la direction de mouvement
+                const direction = getMovementDirection(q, r);
+                if (direction) {
+                    if (tryMove(direction)) {
+                        switchTurn();
+                    }
                 } else {
-                    statusElement.textContent = "Mouvement invalide (Direction ou Poussée impossible).";
+                    statusElement.textContent = "Mouvement invalide. Ciblez une case adjacente à la sélection.";
                 }
             }
 
-            renderBoard(); // Rafraîchit l'affichage
+            renderBoard();
         }
 
-        // Vérifie si la nouvelle bille est adjacente au groupe sélectionné
-        function isAdjacent(r, c, group) {
-            // Pour le 5x5, on vérifie si la nouvelle bille est voisine d'une des billes sélectionnées
-            return group.some(([gr, gc]) => {
-                const dr = Math.abs(r - gr);
-                const dc = Math.abs(c - gc);
-                // Voisin direct (diagonale incluse)
-                return (dr <= 1 && dc <= 1) && (dr + dc > 0);
+        function isAdjacentToGroup(q, r) {
+            return selectedMarbles.some(([sq, sr]) => isAdjacent(q, r, sq, sr));
+        }
+
+        // Détermine si le clic (q, r) définit un mouvement valide pour le groupe sélectionné
+        function getMovementDirection(targetQ, targetR) {
+            // Le déplacement doit être une unité dans une direction hexagonale (dr, dc)
+            // L'ensemble du groupe doit bouger
+            
+            // On vérifie la position de la première bille du groupe (simplifié)
+            const [q, r] = selectedMarbles[0];
+
+            for (const dir of HEX_DIRECTIONS) {
+                 const newQ = q + dir.q;
+                 const newR = r + dir.r;
+                 if (newQ === targetQ && newR === targetR) {
+                      return dir; // C'est un mouvement valide
+                 }
+            }
+            return null;
+        }
+
+        // --- Logique de Poussée/Déplacement ---
+
+        function tryMove(direction) {
+            // Tri du groupe sélectionné par rapport à la direction de mouvement
+            selectedMarbles.sort((a, b) => {
+                return (b[0] * direction.q + b[1] * direction.r) - (a[0] * direction.q + a[1] * direction.r);
             });
-        }
-        
-        // --- Logique de Mouvement (Simplifiée) ---
-        
-        function tryMove(tr, tc) {
-            if (selectedMarbles.length === 0) return false;
             
-            // Les billes sélectionnées doivent être triées pour déterminer la direction
-            selectedMarbles.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+            // La bille la plus en avant dans la direction de mouvement
+            const [frontQ, frontR] = selectedMarbles[selectedMarbles.length - 1];
+            const nextQ = frontQ + direction.q;
+            const nextR = frontR + direction.r;
+            const nextKey = `${nextQ},${nextR}`;
 
-            const sr = selectedMarbles[0][0]; // Ligne de la première bille
-            const sc = selectedMarbles[0][1]; // Colonne de la première bille
-            
-            const lastR = selectedMarbles[selectedMarbles.length - 1][0];
-            const lastC = selectedMarbles[selectedMarbles.length - 1][1];
-            
-            // Détermine le vecteur de déplacement (dr, dc)
-            // tr, tc est la destination CLIQUEE (qui doit être une case VIVE ou une bille ADVERSE)
-            const dr = tr - sr;
-            const dc = tc - sc;
-
-            // Simplification: On ne gère que le mouvement d'une unité à la fois
-            if (Math.abs(dr) > 1 || Math.abs(dc) > 1 || (dr === 0 && dc === 0)) {
-                return false;
+            // Si la cible est hors plateau, c'est une poussée ratée (mouvement parallèle)
+            if (!isOnBoard(nextQ, nextR)) {
+                 statusElement.textContent = "Mouvement invalide : Hors plateau.";
+                 return false;
             }
             
-            // 1. Mouvement "en ligne" (Déplacement du groupe vers une case vide)
-            // L'ensemble du groupe se déplace de (dr, dc)
-            const targetPos = [lastR + dr, lastC + dc];
+            const nextState = boardState[nextKey];
             
-            // Vérifie que la case cible est vide
-            if (boardState[targetPos[0]][targetPos[1]] === 0) {
-                 // Effectue le déplacement
-                 performInlineMove(dr, dc);
+            // 1. Déplacement Simple (cible vide)
+            if (nextState.player === 0) {
+                 performInlineMove(direction);
                  return true;
             }
-
-            // 2. Mouvement "de poussée" (Push)
-            const opponent = currentPlayer === 'white' ? 'black' : 'white';
             
-            // Vérifie si la case immédiatement après la fin du groupe est une bille adverse
-            if (boardState[targetPos[0]][targetPos[1]] === opponent) {
-                // Et que la taille du groupe est supérieure à la taille de la ligne adverse (Abalone rule: 2v1, 3v1, 3v2)
-                if (selectedMarbles.length > 1) { // Simplifié: 2 billes peuvent pousser 1, 3 billes peuvent pousser 1 ou 2
-                     return tryPush(dr, dc, targetPos, opponent);
-                }
+            // 2. Poussée (cible adverse) - Logique très complexe, SIMPLIFIÉE
+            if (nextState.player !== 0 && nextState.player !== currentPlayer) {
+                 return tryPush(direction, [nextQ, nextR]);
             }
             
+            // 3. Cible amie (Mouvement parallèle) - On ne gère pas cela dans cette version simplifiée
+            statusElement.textContent = "Mouvement parallèle non géré, ou trop de billes.";
             return false;
         }
 
-        // Effectue un déplacement simple (le groupe se déplace dans l'espace libre)
-        function performInlineMove(dr, dc) {
-             // De la dernière bille à la première bille (pour ne pas écraser les billes)
+        function performInlineMove(direction) {
+            // Déplace de l'arrière vers l'avant (pour éviter d'écraser)
              for (let i = selectedMarbles.length - 1; i >= 0; i--) {
-                 const [r, c] = selectedMarbles[i];
-                 const [tr, tc] = [r + dr, c + dc];
-                 
-                 boardState[tr][tc] = boardState[r][c]; // Déplace la bille
-                 boardState[r][c] = 0; // Vide la case source
+                const [q, r] = selectedMarbles[i];
+                const key = `${q},${r}`;
+                const newQ = q + direction.q;
+                const newR = r + direction.r;
+                const newKey = `${newQ},${newR}`;
+                
+                // Déplace la bille
+                boardState[newKey].player = boardState[key].player;
+                boardState[newKey].element.appendChild(boardState[key].element.querySelector('.marble'));
+
+                // Vide l'ancienne position
+                boardState[key].player = 0;
+                boardState[key].element.innerHTML = ''; // Retirer la bille
              }
         }
         
-        // Tente de pousser une bille adverse
-        function tryPush(dr, dc, startPos, opponent) {
+        function tryPush(direction, startPos) {
+            const opponent = boardState[`${startPos[0]},${startPos[1]}`].player;
             let pushCount = 0;
-            let currentR = startPos[0];
-            let currentC = startPos[1];
+            let currentQ = startPos[0];
+            let currentR = startPos[1];
 
-            // Compte combien de billes adverses sont alignées
-            while (currentR >= 0 && currentR < SIZE && currentC >= 0 && currentC < SIZE && boardState[currentR][currentC] === opponent) {
+            // Compte la ligne adverse
+            while (isOnBoard(currentQ, currentR) && boardState[`${currentQ},${currentR}`] && boardState[`${currentQ},${currentR}`].player === opponent) {
                 pushCount++;
-                currentR += dr;
-                currentC += dc;
+                currentQ += direction.q;
+                currentR += direction.r;
             }
+            
+            // Règle Abalone: On ne peut pousser que si (Taille Joueur > Taille Opposant) ET (Taille Joueur <= 3)
+            if (selectedMarbles.length > pushCount && selectedMarbles.length <= 3) {
+                 
+                 // Déplace la ligne adverse
+                 for (let i = pushCount - 1; i >= 0; i--) {
+                    const q = startPos[0] + direction.q * i;
+                    const r = startPos[1] + direction.r * i;
+                    const newQ = q + direction.q;
+                    const newR = r + direction.r;
+                    const key = `${q},${r}`;
+                    const newKey = `${newQ},${newR}`;
 
-            // Abalone Rule: Le groupe doit être plus grand que la ligne à pousser (Ex: 2v1, 3v1, 3v2)
-            if (selectedMarbles.length > pushCount) {
-                // Poussée réussie !
-                
-                // 1. Déplace la chaîne adverse (dernière bille à la première bille)
-                for (let i = pushCount - 1; i >= 0; i--) {
-                    const r = startPos[0] + dr * i;
-                    const c = startPos[1] + dc * i;
-                    const tr = r + dr;
-                    const tc = c + dc;
-
-                    // Vérifie si la dernière bille adverse est poussée hors du plateau
-                    if (i === pushCount - 1) {
-                         if (tr < 0 || tr >= SIZE || tc < 0 || tc >= SIZE) {
-                            ejectedCount[opponent]++; // Bille éjectée
-                         } else {
-                            boardState[tr][tc] = boardState[r][c]; // Déplacement normal
-                         }
+                    // Éjection (la bille est poussée hors du plateau)
+                    if (!isOnBoard(newQ, newR)) {
+                         ejectedCount[opponent]++;
+                         boardState[key].player = 0;
+                         boardState[key].element.innerHTML = '';
                     } else {
-                         boardState[tr][tc] = boardState[r][c];
+                         // Déplace bille adverse
+                         boardState[newKey].player = boardState[key].player;
+                         boardState[newKey].element.appendChild(boardState[key].element.querySelector('.marble'));
+                         boardState[key].player = 0;
+                         boardState[key].element.innerHTML = '';
                     }
-                }
+                 }
 
-                // 2. Déplace le groupe du joueur sur la case de départ de la poussée
-                boardState[startPos[0]][startPos[1]] = currentPlayer;
-
-                // 3. Vide l'ancienne position du groupe
-                for (const [r, c] of selectedMarbles) {
-                     boardState[r][c] = 0;
-                }
-                
-                // Vérifie la victoire
-                if (ejectedCount[opponent] >= WIN_COUNT) {
+                 // Déplace le groupe du joueur (permet de simplifier la gestion des cases)
+                 performInlineMove(direction);
+                 
+                 // Vérifie la victoire
+                 if (ejectedCount[opponent] >= WIN_COUNT) {
                      endGame(currentPlayer);
-                }
-                
-                return true;
+                 }
+                 
+                 return true;
             }
+            statusElement.textContent = `Poussée impossible : ${selectedMarbles.length} contre ${pushCount}.`;
             return false;
         }
-
 
         // --- Fonctions de Contrôle ---
 
         function switchTurn() {
-            selectedMarbles = []; // Désélectionner
+            selectedMarbles = []; 
             currentPlayer = currentPlayer === 'white' ? 'black' : 'white';
             renderBoard();
             updateStatus();
-            updateCounters();
         }
-
+        
         function endGame(winner) {
             gameActive = false;
             let winnerColor = winner.toUpperCase();
             statusElement.textContent = `🏆 FIN : Le joueur ${winnerColor} a gagné en éjectant ${WIN_COUNT} billes adverses !`;
-            console.log(`Le joueur ${winnerColor} a gagné ! On enverra l'XP plus tard.`);
+            // C'est ici que tu appellerais notifyBotWin(XP)
+            console.log(`Le joueur ${winnerColor} a gagné !`);
         }
 
         // --- Événements ---
