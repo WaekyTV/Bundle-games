@@ -1,84 +1,170 @@
-/* Fichier combiné : main.css + board.css + player.css + tile.css */
-:root {
-  --tile-width: 45px;
-  --tile-height: 65px;
-  --tile-border-radius: 5px;
-  --blue-tile: #1A75B2;
-  --red-tile: #D93B3B;
-  --yellow-tile: #FFC300;
-  --black-tile: #1c1c1c;
-  --main-bg-color: #1a1a2e; /* Modifié par Poxel */
-  --font-color: #e0e0e0; /* Modifié par Poxel */
-  --board-bg-color: #4b4b4b; /* Modifié par Poxel */
-  --player-bg-color: #333; /* Modifié par Poxel */
-  --font-url: '../font/VarelaRound-Regular.woff'; 
-}
-@font-face {
-    font-family: 'Varela Round';
-    src: url(var(--font-url)) format('woff');
-}
-* { box-sizing: border-box; }
 body {
-  background-color: var(--main-bg-color); color: var(--font-color);
-  font-family: Arial, sans-serif; display: flex; flex-direction: column;
-  align-items: center; min-height: 100vh; margin: 0; padding: 20px;
+    background-color: blanchedalmond;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    display: flex;
+    flex-direction:column;
+    box-sizing:border-box;
 }
-h1 { color: #00ff99; margin-bottom: 5px; }
-h2 {
-  border-bottom: 1px dashed #6441a5; width: 100%;
-  max-width: 900px; text-align: left; padding-bottom: 5px;
+
+.container1 {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    margin-bottom: 10px;
+    margin-top: 30px;
 }
-.main-container {
-  width: 100%; max-width: 1000px; display: flex;
-  flex-direction: column; align-items: center;
+.container1 h1 {
+    margin-block-end:0;
+    margin-block-start: 0;
 }
-.game-container { width: 100%; }
-button {
-  background-color: #00ff99; border: none; color: #1a1a2e;
-  padding: 10px 20px; font-size: 1em; font-weight: bold;
-  border-radius: 5px; cursor: pointer; margin: 5px;
+.container2 {
+    display: flex;
+    flex-direction: row;
+    /* justify-content: space-between; */
+    margin: 10px;
 }
-button:hover { opacity: 0.9; }
-.board-container {
-  width: 100%; display: flex; flex-direction: column;
-  align-items: center; margin-top: 20px;
+.container3 {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-self: flex-end;
+    width: 100%;
+    margin-top: 10px;
+    margin-bottom: 30px;
 }
-.board {
-  width: 100%; max-width: 900px; min-height: 200px;
-  background-color: var(--board-bg-color); border: 3px solid #00ff99;
-  border-radius: 8px; padding: 10px; display: flex;
-  flex-wrap: wrap; gap: 5px; align-content: flex-start;
+
+.computer-info, .player-info {
+    margin: 0 5vw;
+    width: 5vw;
+    /* height: 8vh; */
+    display: flex;
+    flex-direction: column;
 }
-#validate-board-button { margin-top: 10px; }
-.player-container {
-  width: 100%; display: flex; flex-direction: column; align-items: center;
+.computer-info p, .player-info p {
+    text-align: center;
+    margin: 0;
 }
-.player-hand {
-  width: 100%; max-width: 900px; min-height: 120px;
-  background-color: var(--player-bg-color); border: 3px solid #6441a5;
-  border-radius: 8px; padding: 10px; display: flex;
-  flex-wrap: wrap; gap: 5px; align-content: flex-start;
+
+.computer-info div, .player-info div, .pouch div {
+    text-align: center;
+    margin-top: 3px;
 }
-.player-actions { margin-top: 10px; }
+.computer-info img, .player-info img, .pouch img {
+    height: 25px;
+}
+.computer-rack, .player-rack {
+    min-height: 60px;
+    height: 8.5vh;
+    background-color: burlywood;
+    border-radius: 7px;
+    display: flex;
+    flex-direction: row;
+    padding: 10px 15px;
+}
+
+.done, .reverse {
+    margin: 0 10px;
+}
+
+.groups {
+    height: 70vh;
+    width: 30vw;
+    /* border: 1px solid black; */
+    margin: 1vh 1.5vw;
+    margin-left: 10vw;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    /* padding: 1vh 1vw; */
+}
+
+.group {
+    height: 8.5vh;
+    display: flex;
+    margin-bottom: 1px;
+    flex-direction: row;
+
+}
+.runs {
+    height: 70vh;
+    width: 45vw;
+    /* border: 1px solid black; */
+    margin: 1vh 1.5vw;
+    display: flex;
+    flex-direction: column;
+}
+
+.run {
+    display: flex;
+    flex-direction: row;
+    height: 8.5vh;
+    margin-bottom: 1px;
+}
+.draw {
+    height: 10vh;
+    
+}
+.pouch {
+    align-self: flex-end;
+}
+
 .tile {
-  width: var(--tile-width); height: var(--tile-height);
-  border-radius: var(--tile-border-radius); display: flex;
-  justify-content: center; align-items: center; font-size: 1.5em;
-  font-weight: 900; cursor: pointer;
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  font-family: 'Varela Round', sans-serif; 
+    /* border: 1px solid darkgray; */
+    width: 2.8vw;
+    margin-left: 5px;
+    background-image: url("../images/tileBack.png");
+    background-repeat: no-repeat;
+    background-size: cover;
+    opacity: 0.25;
+    box-shadow: 0.5px 1px 2px rgba(0, 0, 0, .5);
+    border-radius: 5px;
+
 }
-.tile.red { background-color: var(--red-tile); color: white; }
-.tile.blue { background-color: var(--blue-tile); color: white; }
-.tile.yellow { background-color: var(--yellow-tile); color: #1a1a2e; }
-.tile.black { background-color: var(--black-tile); color: white; }
-.joker { font-size: 0.8em; }
-.tile.joker {
-  background-color: var(--black-tile); color: var(--red-tile);
-  border: 2px dashed #00ff99;
+
+.highlight, .computer {
+    opacity: 1;
+    
 }
-.tile.joker.blue { color: var(--blue-tile); }
-.tile.joker.yellow { color: var(--yellow-tile); }
-.tile.dragging { opacity: 0.5; box-shadow: 0 0 15px #FFDC00; }
-.tile.over { border: 2px dashed #00ff99; }
+
+.highlight:hover {
+    /* opacity: 0.1; */
+    transform: translate(0px, -3px);
+    box-shadow: 1px 2px 4px rgba(0, 0, 0, .5);
+    /* cursor: move; */
+    cursor: pointer;
+}
+
+.win {
+    position: fixed;
+    height: 60vh;
+    width: 60vw;
+    top: 20vh;
+    left: 20vw;
+    background-color:burlywood ;
+    border-radius: 15px;
+    text-align: center;
+}
+
+.start {
+    z-index: 2;
+    position: fixed;
+    height: 60vh;
+    width: 60vw;
+    top: 20vh;
+    left: 20vw;
+    background-color:burlywood ;
+    border-radius: 15px;
+    text-align: center;
+}
+
+.win h2 {
+    margin-top:50px;
+}
+
+
+
+.filter {
+filter: blur(4px);
+}
