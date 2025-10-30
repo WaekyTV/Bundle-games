@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu de Dames</title>
+    <style>
+        /* Thème sombre cohérent */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            user-select: none;
+        }
+        h1 {
+            color: #00ff99; /* Vert néon */
+        }
+        
+        /* Conteneur du plateau */
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            border: 4px solid #6441a5; /* Violet néon */
+            margin: 20px 0;
+        }
+        
+        /* Cases (celles-ci sont statiques, les jetons sont des éléments enfants) */
+        .square {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0; /* Cache le contenu par défaut */
+            position: relative;
+        }
+        
+        /* Couleurs du plateau */
+        .light { background-color: #eee; } /* Blanc/Clair */
+        .dark { background-color: #555; } /* Noir/Sombre */
+        
+        /* Les jetons (les pièces) */
+        .piece {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+            transition: border 0.1s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em; /* Pour les 'dames' */
+        }
+        .white { background-color: #fff; color: #333; }
+        .black { background-color: #000; color: #fff; }
+        
+        /* Style pour la pièce sélectionnée */
+        .selected { 
+            border: 4px solid #00ff99; /* Vert néon pour la sélection */
+            transform: scale(1.1);
+        }
+
+        /* Style pour les dames (kings) */
+        .king::after {
+            content: "👑";
+            position: absolute;
+            font-size: 0.8em;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Indicateur de tour et statut */
+        #status {
+            font-size: 1.5em;
+            margin: 15px 0;
+            min-height: 30px;
+            color: #FFDC00; /* Jaune */
+        }
+
+        /* Boutons et lien */
+        button {
+            background-color: #00ff99;
+            border: none;
+            color: #1a1a2e;
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        a {
+            display: inline-block;
+            margin-top: 15px;
+            color: #00ff99;
+            text-decoration: none;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Jeu de Dames (Blanc vs Noir)</h1>
+    
+    <div id="status">Chargement...</div>
+    
+    <div id="board">
+        </div>
+    
+    <button id="restartButton">Nouvelle Partie</button>
+    <a href="../index.html">Retour au menu</a>
+
+    <script>
+        const BOARD_SIZE = 8;
+        const boardElement = document.getElementById('board');
+        const statusElement = document.getElementById('status');
+        const restartButton = document.getElementById('restartButton');
+
+        let boardState = []; // Représentation logique du plateau
+        let currentPlayer = 'white'; // Blanc commence
+        let selectedPiece = null; // Pièce actuellement sélectionnée [row, col]
+        let gameActive = false;
+
+        // Code pour les Dames (1=White, 2=Black, 3=White King, 4=Black King)
+        const PIECE = { EMPTY: 0, WHITE: 1, BLACK: 2, W_KING: 3, B_KING: 4 };
+
+        // --- Fonctions d'Initialisation ---
+
+        function initializeGame() {
+            boardElement.innerHTML = '';
+            boardState = [];
+            selectedPiece = null;
+            currentPlayer = 'white';
+            gameActive = true;
+
+            // 1. Initialiser le boardState (les pièces)
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                boardState[r] = [];
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    // Les pièces sont seulement sur les cases noires/sombres
+                    if ((r + c) % 2 === 1) { 
+                        if (r < 3) {
+                            boardState[r][c] = PIECE.BLACK; // Haut = Noir
+                        } else if (r > 4) {
+                            boardState[r][c] = PIECE.WHITE; // Bas = Blanc
+                        } else {
+                            boardState[r][c] = PIECE.EMPTY;
+                        }
+                    } else {
+                        boardState[r][c] = PIECE.EMPTY; // Cases blanches toujours vides
+                    }
+                }
+            }
+            
+            // 2. Dessiner le plateau
+            renderBoard();
+            updateStatus();
+        }
+
+        // Dessine la grille et les jetons
+        function renderBoard() {
+            boardElement.innerHTML = '';
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const square = document.createElement('div');
+                    square.classList.add('square');
+                    square.classList.add((r + c) % 2 === 0 ? 'light' : 'dark');
+                    square.dataset.row = r;
+                    square.dataset.col = c;
+                    
+                    const pieceType = boardState[r][c];
+                    if (pieceType !== PIECE.EMPTY) {
+                        const piece = document.createElement('div');
+                        piece.classList.add('piece');
+                        
+                        const isWhite = pieceType === PIECE.WHITE || pieceType === PIECE.W_KING;
+                        piece.classList.add(isWhite ? 'white' : 'black');
+                        
+                        if (pieceType === PIECE.W_KING || pieceType === PIECE.B_KING) {
+                             piece.classList.add('king');
+                        }
+                        
+                        // Ajoute l'écouteur de clic seulement aux pièces du joueur actuel
+                        if ((currentPlayer === 'white' && isWhite) || (currentPlayer === 'black' && !isWhite)) {
+                            piece.addEventListener('click', () => handlePieceClick(r, c));
+                        }
+                        
+                        // Si la pièce est sélectionnée, applique le style
+                        if (selectedPiece && selectedPiece[0] === r && selectedPiece[1] === c) {
+                             piece.classList.add('selected');
+                        }
+
+                        square.appendChild(piece);
+                    } else {
+                         // Ajoute l'écouteur de clic pour le mouvement de destination (seulement si une pièce est sélectionnée)
+                         if (selectedPiece && (r + c) % 2 === 1) {
+                             square.addEventListener('click', () => handleMoveClick(r, c));
+                         }
+                    }
+                    boardElement.appendChild(square);
+                }
+            }
+        }
+        
+        // Met à jour le statut
+        function updateStatus() {
+            statusElement.textContent = `Au tour des ${currentPlayer.toUpperCase()}`;
+            // Mettre à jour le plateau pour s'assurer que les écouteurs de clic sont corrects pour le joueur actuel
+            renderBoard(); 
+        }
+
+        // --- Fonctions de Jeu ---
+
+        // Gère la sélection de la pièce
+        function handlePieceClick(r, c) {
+            if (!gameActive) return;
+
+            // Désélectionner si on reclique sur la même pièce
+            if (selectedPiece && selectedPiece[0] === r && selectedPiece[1] === c) {
+                selectedPiece = null;
+            } else {
+                selectedPiece = [r, c];
+            }
+            renderBoard(); // Rafraîchit l'affichage pour montrer la sélection
+        }
+
+        // Gère le mouvement vers la case cible
+        function handleMoveClick(r, c) {
+            if (!gameActive || !selectedPiece) return;
+
+            const sr = selectedPiece[0]; // Ligne Source
+            const sc = selectedPiece[1]; // Colonne Source
+            
+            const pieceType = boardState[sr][sc];
+            
+            // 1. Vérifie si le coup est légal (simplifié : uniquement mouvement simple ou saut)
+            const isKing = pieceType === PIECE.W_KING || pieceType === PIECE.B_KING;
+            const direction = currentPlayer === 'white' ? -1 : 1; // Blanc monte (-1), Noir descend (+1)
+            
+            const rowDiff = r - sr;
+            const colDiff = c - sc;
+
+            // Mouvement simple (une case en diagonale)
+            if (Math.abs(colDiff) === 1 && (rowDiff === direction || isKing && Math.abs(rowDiff) === 1)) {
+                if (Math.abs(rowDiff) === 1) { // Vérifie qu'on n'essaie pas de bouger sur la même ligne
+                    performMove(sr, sc, r, c);
+                    endTurn();
+                    return;
+                }
+            } 
+            // Saut (deux cases en diagonale)
+            else if (Math.abs(colDiff) === 2 && Math.abs(rowDiff) === 2) {
+                const capturedR = sr + rowDiff / 2;
+                const capturedC = sc + colDiff / 2;
+                const capturedPiece = boardState[capturedR][capturedC];
+                
+                // Vérifie s'il y a une pièce adverse à sauter
+                const isOpponent = currentPlayer === 'white' 
+                    ? (capturedPiece === PIECE.BLACK || capturedPiece === PIECE.B_KING) 
+                    : (capturedPiece === PIECE.WHITE || capturedPiece === PIECE.W_KING);
+                
+                if (isOpponent) {
+                    performJump(sr, sc, r, c, capturedR, capturedC);
+                    
+                    // Vérifie si d'autres sauts sont possibles (règles des Dames)
+                    if (canPerformMultiJump(r, c)) {
+                        selectedPiece = [r, c]; // Garde la pièce sélectionnée
+                        statusElement.textContent = `Saut obligatoire ! Continuez avec ${currentPlayer.toUpperCase()}`;
+                    } else {
+                         endTurn();
+                    }
+                    return;
+                }
+            }
+
+            statusElement.textContent = `Coup illégal pour ${currentPlayer.toUpperCase()}.`;
+            selectedPiece = null; // Désélectionner
+            renderBoard();
+        }
+        
+        // Effectue un mouvement simple
+        function performMove(sr, sc, r, c) {
+            boardState[r][c] = boardState[sr][sc];
+            boardState[sr][sc] = PIECE.EMPTY;
+            checkKing(r, c);
+            selectedPiece = null;
+        }
+
+        // Effectue un saut (prise)
+        function performJump(sr, sc, r, c, capturedR, capturedC) {
+            boardState[r][c] = boardState[sr][sc]; // Pièce arrive à destination
+            boardState[sr][sc] = PIECE.EMPTY; // Case de départ vide
+            boardState[capturedR][capturedC] = PIECE.EMPTY; // Pièce capturée enlevée
+            checkKing(r, c);
+            checkGameEnd(); // Vérifie si toutes les pièces adverses ont été prises
+        }
+
+        // Vérifie si la pièce arrive sur la ligne de promotion (devient Dame)
+        function checkKing(r, c) {
+            if (currentPlayer === 'white' && r === 0) {
+                boardState[r][c] = PIECE.W_KING;
+            } else if (currentPlayer === 'black' && r === BOARD_SIZE - 1) {
+                boardState[r][c] = PIECE.B_KING;
+            }
+        }
+        
+        // Vérifie s'il y a un autre saut obligatoire
+        function canPerformMultiJump(r, c) {
+            // Logique complexe, mais on simplifie ici en vérifiant si la pièce peut sauter de sa nouvelle position
+            const pieceType = boardState[r][c];
+            const isKing = pieceType === PIECE.W_KING || pieceType === PIECE.B_KING;
+            const directions = isKing ? [[-1, -1], [-1, 1], [1, -1], [1, 1]] : (currentPlayer === 'white' ? [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]]);
+
+            for (const [dr, dc] of directions) {
+                const jumpR = r + dr * 2;
+                const jumpC = c + dc * 2;
+                const capturedR = r + dr;
+                const capturedC = c + dc;
+                
+                if (jumpR >= 0 && jumpR < BOARD_SIZE && jumpC >= 0 && jumpC < BOARD_SIZE) {
+                    if (boardState[jumpR][jumpC] === PIECE.EMPTY) {
+                        const capturedPiece = boardState[capturedR][capturedC];
+                        const isOpponent = currentPlayer === 'white' 
+                            ? (capturedPiece === PIECE.BLACK || capturedPiece === PIECE.B_KING) 
+                            : (capturedPiece === PIECE.WHITE || capturedPiece === PIECE.W_KING);
+                        
+                        if (isOpponent) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Fin du tour
+        function endTurn() {
+            selectedPiece = null;
+            currentPlayer = currentPlayer === 'white' ? 'black' : 'white';
+            updateStatus();
+        }
+
+        // Vérifie si la partie est terminée
+        function checkGameEnd() {
+            let whitePieces = boardState.flat().filter(p => p === PIECE.WHITE || p === PIECE.W_KING).length;
+            let blackPieces = boardState.flat().filter(p => p === PIECE.BLACK || p === PIECE.B_KING).length;
+
+            if (whitePieces === 0) {
+                endGame('Noir');
+            } else if (blackPieces === 0) {
+                endGame('Blanc');
+            }
+        }
+        
+        // Gère la fin de partie
+        function endGame(winner) {
+            gameActive = false;
+            statusElement.textContent = `🏆 Le joueur ${winner.toUpperCase()} a gagné !`;
+            console.log(`Le joueur ${winner} a gagné ! On enverra l'XP plus tard.`);
+        }
+
+        // Lie le bouton Recommencer
+        restartButton.addEventListener('click', initializeGame);
+
+        // Lancement du jeu
+        initializeGame();
+    </script>
+</body>
+</html>
