@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Le Démineur</title>
+    <style>
+        /* Thème sombre cohérent */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            user-select: none;
+        }
+        h1 {
+            color: #00ff99; /* Vert néon */
+        }
+        
+        #controls {
+            margin-bottom: 20px;
+        }
+
+        /* La grille de jeu */
+        #game-board {
+            display: inline-grid;
+            /* Le nombre de colonnes sera défini par JS */
+            grid-gap: 1px;
+            background-color: #2e2e4d;
+            border: 5px solid #6441a5;
+            padding: 5px;
+        }
+        
+        /* Les cases individuelles */
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #444; /* Non découvert */
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.1s;
+            font-size: 0.9em;
+        }
+        
+        /* Cases découvertes */
+        .cell.discovered {
+            background-color: #ccc;
+            color: #1a1a2e;
+            cursor: default;
+        }
+        .cell.discovered.empty {
+            background-color: #eee;
+        }
+        
+        /* Styles spécifiques aux numéros */
+        .c1 { color: blue; }
+        .c2 { color: green; }
+        .c3 { color: red; }
+        .c4 { color: darkblue; }
+        .c5 { color: darkred; }
+        .c6 { color: teal; }
+        .c7 { color: black; }
+        .c8 { color: gray; }
+        
+        /* Drapeaux et Bombes */
+        .cell.flag {
+            background-color: #6441a5;
+            color: #FFDC00; /* Jaune */
+            font-size: 1.5em;
+        }
+        .cell.mine {
+            background-color: #FF4136; /* Rouge (explosion) */
+            font-size: 1.5em;
+        }
+
+        #status {
+            font-size: 1.5em;
+            margin: 20px 0;
+            min-height: 30px;
+            color: #00ff99;
+        }
+        
+        /* Boutons et lien */
+        button {
+            background-color: #00ff99;
+            border: none;
+            color: #1a1a2e;
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        a {
+            display: inline-block;
+            margin-top: 15px;
+            color: #00ff99;
+            text-decoration: none;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Le Démineur</h1>
+    
+    <div id="controls">
+        <button id="restartButton">Nouveau Jeu (10x10, 20 mines)</button>
+    </div>
+    
+    <div id="status">Cliquez pour commencer. Le clic droit pose un drapeau (🚩).</div>
+    
+    <div id="game-board"></div>
+    
+    <a href="../index.html">Retour au menu</a>
+
+    <script>
+        const ROWS = 10;
+        const COLS = 10;
+        const MINES = 20;
+
+        const boardElement = document.getElementById('game-board');
+        const statusElement = document.getElementById('status');
+        const restartButton = document.getElementById('restartButton');
+
+        let board = []; // Tableau 2D avec la logique (mine, nombre)
+        let gameActive = true;
+        let cellsLeft; // Cases non minées à découvrir
+
+        // Empêche le menu contextuel du clic droit d'apparaître
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        // --- Fonctions d'Initialisation ---
+
+        function initializeGame() {
+            boardElement.innerHTML = '';
+            boardElement.style.gridTemplateColumns = `repeat(${COLS}, 30px)`;
+            
+            board = [];
+            gameActive = true;
+            cellsLeft = ROWS * COLS - MINES;
+            statusElement.textContent = `Mines restantes : ${MINES}`;
+
+            // Création de la grille logique et visuelle
+            for (let r = 0; r < ROWS; r++) {
+                board[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    // Logic Data: 0=vide, -1=mine
+                    board[r][c] = {
+                        isMine: false,
+                        count: 0,
+                        isDiscovered: false,
+                        isFlagged: false,
+                        element: createCellElement(r, c)
+                    };
+                    boardElement.appendChild(board[r][c].element);
+                }
+            }
+
+            placeMines();
+            calculateNumbers();
+        }
+
+        function createCellElement(r, c) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.dataset.row = r;
+            cell.dataset.col = c;
+            // Événements pour le jeu
+            cell.addEventListener('click', handleLeftClick);
+            cell.addEventListener('contextmenu', handleRightClick); // Clic droit
+            return cell;
+        }
+
+        // Place les mines aléatoirement
+        function placeMines() {
+            let minesPlaced = 0;
+            while (minesPlaced < MINES) {
+                const r = Math.floor(Math.random() * ROWS);
+                const c = Math.floor(Math.random() * COLS);
+
+                if (!board[r][c].isMine) {
+                    board[r][c].isMine = true;
+                    // board[r][c].element.textContent = '💣'; // Décommenter pour tricher
+                    minesPlaced++;
+                }
+            }
+        }
+
+        // Calcule le nombre de mines autour de chaque case
+        function calculateNumbers() {
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (!board[r][c].isMine) {
+                        let count = 0;
+                        getNeighbors(r, c).forEach(([nr, nc]) => {
+                            if (board[nr][nc].isMine) {
+                                count++;
+                            }
+                        });
+                        board[r][c].count = count;
+                    }
+                }
+            }
+        }
+
+        // Retourne les coordonnées des cases voisines valides
+        function getNeighbors(r, c) {
+            const neighbors = [];
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    if (dr === 0 && dc === 0) continue; // Pas la case elle-même
+                    const nr = r + dr;
+                    const nc = c + dc;
+
+                    // Vérifie si la case est dans la grille
+                    if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                        neighbors.push([nr, nc]);
+                    }
+                }
+            }
+            return neighbors;
+        }
+
+        // --- Fonctions de Jeu ---
+
+        // Clic gauche (Découvrir)
+        function handleLeftClick(e) {
+            if (!gameActive) return;
+
+            const r = parseInt(e.target.dataset.row);
+            const c = parseInt(e.target.dataset.col);
+            const cell = board[r][c];
+
+            if (cell.isDiscovered || cell.isFlagged) return;
+
+            if (cell.isMine) {
+                // Défaite
+                cell.element.classList.add('mine');
+                cell.element.textContent = '💥';
+                revealAllMines();
+                endGame(false);
+            } else {
+                discover(r, c);
+                checkWin();
+            }
+        }
+
+        // Clic droit (Drapeau)
+        function handleRightClick(e) {
+            if (!gameActive) return;
+
+            const r = parseInt(e.target.dataset.row);
+            const c = parseInt(e.target.dataset.col);
+            const cell = board[r][c];
+
+            if (cell.isDiscovered) return;
+
+            // Ajoute/Retire le drapeau
+            cell.isFlagged = !cell.isFlagged;
+            cell.element.classList.toggle('flag');
+            cell.element.textContent = cell.isFlagged ? '🚩' : '';
+            
+            // Mise à jour du statut des mines restantes (simple: compte les drapeaux)
+            let flagsCount = Array.from(document.querySelectorAll('.cell.flag')).length;
+            statusElement.textContent = `Drapeaux : ${flagsCount} / ${MINES}`;
+        }
+
+        // Découvre une case et propage si c'est vide (récursif)
+        function discover(r, c) {
+            const cell = board[r][c];
+            if (r < 0 || r >= ROWS || c < 0 || c >= COLS || cell.isDiscovered || cell.isFlagged || cell.isMine) {
+                return;
+            }
+
+            cell.isDiscovered = true;
+            cell.element.classList.add('discovered');
+            cellsLeft--;
+
+            if (cell.count > 0) {
+                // Si c'est un numéro
+                cell.element.textContent = cell.count;
+                cell.element.classList.add(`c${cell.count}`);
+            } else {
+                // Si c'est vide, on propage
+                cell.element.classList.add('empty');
+                getNeighbors(r, c).forEach(([nr, nc]) => discover(nr, nc));
+            }
+        }
+
+        // Révèle toutes les bombes
+        function revealAllMines() {
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cell = board[r][c];
+                    if (cell.isMine && !cell.isDiscovered) {
+                        cell.element.classList.add('mine');
+                        cell.element.textContent = '💣';
+                    }
+                }
+            }
+        }
+
+        // Vérifie la victoire
+        function checkWin() {
+            if (cellsLeft === 0) {
+                endGame(true);
+            }
+        }
+
+        // Gère la fin de partie
+        function endGame(win) {
+            gameActive = false;
+            if (win) {
+                statusElement.textContent = "🏆 GAGNÉ ! Vous avez déminé la zone !";
+                // console.log("Le joueur a gagné !");
+            } else {
+                statusElement.textContent = "💀 PERDU ! Vous avez fait exploser une mine.";
+            }
+            // On désactive tous les écouteurs de clic (en retirant les événements)
+            Array.from(document.querySelectorAll('.cell')).forEach(cellEl => {
+                 cellEl.removeEventListener('click', handleLeftClick);
+                 cellEl.removeEventListener('contextmenu', handleRightClick);
+            });
+        }
+
+        // Lie le bouton Recommencer
+        restartButton.addEventListener('click', initializeGame);
+
+        // Lancement du jeu
+        initializeGame();
+    </script>
+</body>
+</html>
