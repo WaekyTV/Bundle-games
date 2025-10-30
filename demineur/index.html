@@ -150,7 +150,8 @@
             board = [];
             gameActive = true;
             cellsLeft = ROWS * COLS - MINES;
-            statusElement.textContent = `Mines restantes : ${MINES}`;
+            statusElement.textContent = `🚩 Mines : ${MINES}`; // Affiche le total de mines
+            // ... (fin de fonction)
 
             // Création de la grille logique et visuelle
             for (let r = 0; r < ROWS; r++) {
@@ -272,9 +273,11 @@
             cell.element.classList.toggle('flag');
             cell.element.textContent = cell.isFlagged ? '🚩' : '';
             
-            // Mise à jour du statut des mines restantes (simple: compte les drapeaux)
-            let flagsCount = Array.from(document.querySelectorAll('.cell.flag')).length;
-            statusElement.textContent = `Drapeaux : ${flagsCount} / ${MINES}`;
+            // --- NOUVEAU : Mise à jour du statut des mines restantes (classique) ---
+            let flagsPlaced = Array.from(document.querySelectorAll('.cell.flag')).length;
+            let minesRemaining = MINES - flagsPlaced;
+            statusElement.textContent = `🚩 Mines : ${minesRemaining}`; 
+            // -------------------------------------------------------------------
         }
 
         // Découvre une case et propage si c'est vide (récursif)
