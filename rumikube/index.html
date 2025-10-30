@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rummikub Simplifié</title>
+    <title>Rummikub Classique Simplifié</title>
     <style>
         /* Thème sombre cohérent */
         body {
@@ -19,7 +19,7 @@
             user-select: none;
         }
         h1 {
-            color: #00ff99; /* Vert néon */
+            color: #00ff99; 
             margin-bottom: 5px;
         }
         
@@ -29,47 +29,67 @@
             flex-wrap: wrap;
             gap: 5px;
             padding: 10px;
-            border: 2px solid #6441a5;
             margin: 10px 0;
             width: 100%;
-            max-width: 800px;
-            min-height: 50px;
+            max-width: 900px;
+            min-height: 80px;
+            border-radius: 8px;
         }
-        
-        /* Style des tuiles */
+
+        /* Chevalet (Main du joueur) */
+        #hand-container {
+            background-color: #333;
+            border: 3px solid #6441a5;
+        }
+        /* Plateau de Jeu (Tapis) */
+        #board-container {
+            background-color: #4b4b4b; /* Couleur plus claire pour simuler le tapis */
+            border: 3px solid #00ff99;
+            min-height: 150px; /* Plus d'espace pour la pose */
+            align-content: flex-start;
+        }
+
+        /* Style des tuiles (Effet 3D Rummikub) */
         .tile {
-            width: 40px;
-            height: 60px;
-            border: 3px solid #333;
+            width: 45px;
+            height: 65px;
             border-radius: 5px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 1.2em;
-            font-weight: bold;
+            font-size: 1.5em; /* Grande valeur */
+            font-weight: 900;
             cursor: pointer;
             transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
-        /* Couleurs des tuiles */
-        .tile.red { background-color: #FF4136; color: white; }
-        .tile.blue { background-color: #0074D9; color: white; }
-        .tile.yellow { background-color: #FFDC00; color: #1a1a2e; }
-        .tile.black { background-color: #111; color: white; }
+        /* Couleurs des tuiles officielles */
+        .tile.red { background-color: #D93B3B; color: white; }
+        .tile.blue { background-color: #1A75B2; color: white; }
+        .tile.yellow { background-color: #FFC300; color: #1a1a2e; }
+        .tile.black { background-color: #1c1c1c; color: white; }
         
-        /* Tuile sélectionnée */
-        .tile.selected {
+        /* Tuile sélectionnée (active) */
+        .tile.active {
             transform: translateY(-5px);
-            box-shadow: 0 0 10px #00ff99; /* Vert néon */
-            border-color: #00ff99;
+            box-shadow: 0 0 10px #FFDC00; 
+            border-color: #FFDC00;
         }
 
-        /* Statut */
+        /* Zone de statut */
         #status {
-            font-size: 1.5em;
+            font-size: 1.2em;
             margin: 15px 0;
             min-height: 30px;
             color: #FFDC00;
+        }
+
+        /* Texte d'information */
+        .info {
+            color: #ccc;
+            margin: 5px 0 15px 0;
         }
         
         /* Boutons */
@@ -93,9 +113,6 @@
             text-decoration: none;
             font-size: 1.1em;
         }
-        a:hover {
-            text-decoration: underline;
-        }
     </style>
 </head>
 <body>
@@ -103,73 +120,73 @@
     <h1>Rummikub Simplifié</h1>
     
     <div id="status">Générez un chevalet pour commencer.</div>
+    <div class="info">Double-cliquez sur une tuile pour la déplacer entre votre Chevalet et la Zone de Jeu.</div>
 
-    <h2>Mon Chevalet</h2>
+    <h2>Mon Chevalet (Main)</h2>
     <div id="hand-container" class="tile-container">
         </div>
     
-    <h2>Tuiles Sélectionnées (pour combinaison)</h2>
-    <div id="selected-container" class="tile-container">
+    <h2>Zone de Jeu (Tapis Central)</h2>
+    <div id="board-container" class="tile-container">
         </div>
 
     <div>
         <button id="newHandBtn">Générer Nouveau Chevalet (14 tuiles)</button>
-        <button id="validateBtn">Valider Combinaison</button>
+        <button id="validateBtn">Valider Combinaison Posée</button>
     </div>
 
     <a href="../index.html">Retour au menu</a>
 
     <script>
         const TILE_COLORS = ['red', 'blue', 'yellow', 'black'];
-        const TILE_VALUES = Array.from({ length: 13 }, (_, i) => i + 1); // 1 à 13
+        // Tuiles 1 à 13, deux fois chaque couleur
+        const FULL_DECK = [];
+        TILE_COLORS.forEach(color => {
+            for (let i = 1; i <= 13; i++) {
+                FULL_DECK.push({ color, value: i, id: `${color}-${i}-a` });
+                FULL_DECK.push({ color, value: i, id: `${color}-${i}-b` });
+            }
+        });
+        // Simplification: pas de Jokers ici. Le deck est de 104 tuiles.
 
         const handContainer = document.getElementById('hand-container');
-        const selectedContainer = document.getElementById('selected-container');
+        const boardContainer = document.getElementById('board-container');
         const statusElement = document.getElementById('status');
         const newHandBtn = document.getElementById('newHandBtn');
         const validateBtn = document.getElementById('validateBtn');
 
-        let hand = []; // Le chevalet actuel
+        let hand = []; // Tuiles dans le chevalet
+        let board = []; // Tuiles posées sur le tapis
 
-        // Génère un nouveau chevalet de 14 tuiles uniques
+        // Génère un nouveau chevalet de 14 tuiles
         function generateNewHand() {
-            const allTiles = [];
-            TILE_COLORS.forEach(color => {
-                TILE_VALUES.forEach(value => {
-                    allTiles.push({ color, value, id: `${color}-${value}-1` });
-                    // Simplification: pas de doubles tuiles pour le moment
-                });
-            });
+            // Créer une copie mélangée du deck complet
+            const shuffledDeck = [...FULL_DECK].sort(() => Math.random() - 0.5);
 
-            // Mélanger et prendre 14
-            for (let i = allTiles.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [allTiles[i], allTiles[j]] = [allTiles[j], allTiles[i]];
+            hand = shuffledDeck.slice(0, 14); // 14 premières tuiles
+            board = [];
+
+            renderTiles();
+            statusElement.textContent = "Nouveau chevalet généré. Double-cliquez pour poser des tuiles.";
+        }
+
+        // Rend toutes les tuiles dans leurs conteneurs respectifs
+        function renderTiles() {
+            renderContainer(handContainer, hand, 'hand');
+            renderContainer(boardContainer, board, 'board');
+        }
+
+        function renderContainer(container, tiles, source) {
+            container.innerHTML = '';
+            
+            // Tri du chevalet pour l'affichage (valeur puis couleur)
+            if (source === 'hand') {
+                tiles.sort((a, b) => a.value - b.value || a.color.localeCompare(b.color));
             }
 
-            hand = allTiles.slice(0, 14);
-            renderHand();
-            renderSelected([]);
-            statusElement.textContent = "Sélectionnez 3 tuiles ou plus pour une combinaison.";
-        }
-
-        // Dessine le chevalet
-        function renderHand() {
-            handContainer.innerHTML = '';
-            hand.sort((a, b) => a.value - b.value || a.color.localeCompare(b.color)); // Tri pour l'affichage
-            
-            hand.forEach((tile, index) => {
-                const tileElement = createTileElement(tile, index, 'hand');
-                handContainer.appendChild(tileElement);
-            });
-        }
-        
-        // Dessine les tuiles sélectionnées
-        function renderSelected(selectedTiles) {
-            selectedContainer.innerHTML = '';
-            selectedTiles.forEach((tile, index) => {
-                const tileElement = createTileElement(tile, index, 'selected');
-                selectedContainer.appendChild(tileElement);
+            tiles.forEach((tile, index) => {
+                const tileElement = createTileElement(tile, index, source);
+                container.appendChild(tileElement);
             });
         }
 
@@ -178,108 +195,85 @@
             const tileElement = document.createElement('div');
             tileElement.classList.add('tile', tile.color);
             tileElement.textContent = tile.value;
-            tileElement.dataset.color = tile.color;
-            tileElement.dataset.value = tile.value;
-            tileElement.dataset.originalIndex = index; // Garde l'index dans le chevalet
             
-            // Logique de clic
-            tileElement.addEventListener('click', () => {
+            // Logique de double-clic pour le mouvement
+            tileElement.addEventListener('dblclick', () => {
                 if (source === 'hand') {
-                    moveTileToSelected(index);
+                    moveTile(hand, board, index);
                 } else {
-                    moveTileToHand(index);
+                    moveTile(board, hand, index);
                 }
+                renderTiles();
             });
 
             return tileElement;
         }
 
-        // Déplace une tuile du chevalet vers la zone sélectionnée
-        function moveTileToSelected(index) {
-            const tile = hand[index];
-            tile.isSelected = true;
-            hand.splice(index, 1); // Retire du chevalet
-            renderHand();
-            
-            // Ajoute à la zone sélectionnée
-            const selectedTiles = getSelectedTiles();
-            selectedTiles.push(tile);
-            selectedTiles.sort((a, b) => a.value - b.value); // Tri par valeur pour validation
-            renderSelected(selectedTiles);
-        }
-
-        // Déplace une tuile de la zone sélectionnée vers le chevalet
-        function moveTileToHand(index) {
-            const selectedTiles = getSelectedTiles();
-            const tile = selectedTiles[index];
-            
-            tile.isSelected = false;
-            selectedTiles.splice(index, 1); // Retire de la sélection
-            
-            hand.push(tile); // Remet dans le chevalet
-            renderHand();
-            renderSelected(selectedTiles);
-        }
-        
-        // Récupère les tuiles sélectionnées
-        function getSelectedTiles() {
-             // Simplement en lisant la zone sélectionnée (moins propre mais fonctionnel)
-             const tiles = [];
-             Array.from(selectedContainer.children).forEach(el => {
-                 tiles.push({
-                     color: el.dataset.color,
-                     value: parseInt(el.dataset.value)
-                 });
-             });
-             return tiles;
+        // Déplace une tuile d'un tableau à un autre
+        function moveTile(sourceArray, targetArray, index) {
+            const [tile] = sourceArray.splice(index, 1);
+            targetArray.push(tile);
         }
 
         // --- Logique de Validation ---
 
         function validateCombination() {
-            const selectedTiles = getSelectedTiles();
-            
-            if (selectedTiles.length < 3) {
-                statusElement.textContent = "❌ Combinaison invalide : Vous devez sélectionner au moins 3 tuiles.";
+            if (board.length === 0) {
+                 statusElement.textContent = "❌ Posez des tuiles dans la Zone de Jeu avant de valider.";
+                 return;
+            }
+
+            // Simplification : Dans cette version, nous traitons TOUTES les tuiles sur le tapis comme UNE SEULE combinaison.
+            // Dans le vrai jeu, le plateau peut contenir plusieurs combinaisons distinctes.
+
+            if (board.length < 3) {
+                statusElement.textContent = "❌ Combinaison invalide : Vous devez poser au moins 3 tuiles.";
                 return;
             }
             
-            // 1. Vérifie si c'est une SÉRIE (Suite de valeurs, couleurs différentes)
-            if (isRun(selectedTiles)) {
-                statusElement.textContent = "✅ VALIDÉ : C'est une SÉRIE (Suite). Bravo !";
-                // notifyBotWin(50); // XP
+            // 1. Vérifie si c'est une SÉRIE (Suite)
+            if (isRun(board)) {
+                statusElement.textContent = `✅ VALIDÉ : C'est une SÉRIE (${board.length} tuiles). Les tuiles sont fixées.`;
+                // Simuler la "fixation" en ne les déplaçant plus.
+                // Ici, on pourrait ajouter notifyBotWin(50) pour les points.
                 return;
             }
             
-            // 2. Vérifie si c'est un GROUPE (Même valeur, couleurs différentes)
-            if (isSet(selectedTiles)) {
-                statusElement.textContent = "✅ VALIDÉ : C'est un GROUPE (Brelan/Carré). Bravo !";
-                // notifyBotWin(50); // XP
+            // 2. Vérifie si c'est un GROUPE (Brelan/Carré)
+            if (isSet(board)) {
+                statusElement.textContent = `✅ VALIDÉ : C'est un GROUPE (${board.length} tuiles). Les tuiles sont fixées.`;
+                // Ici, on pourrait ajouter notifyBotWin(50) pour les points.
                 return;
             }
             
-            statusElement.textContent = "❌ Combinaison invalide. Ni Suite, ni Groupe.";
+            statusElement.textContent = "❌ Combinaison invalide. Ni Suite, ni Groupe. Reprenez les tuiles dans votre chevalet.";
+            // Option : Remettre les tuiles invalides dans le chevalet (pour l'instant, elles restent sur le tapis)
         }
 
-        // Vérifie si c'est une SÉRIE (Suite)
+        // Vérifie si c'est une SÉRIE (Suite de valeurs, couleurs différentes)
         function isRun(tiles) {
             // Doit avoir des valeurs consécutives et toutes les couleurs doivent être différentes
-            let uniqueColors = new Set(tiles.map(t => t.color)).size;
-            if (uniqueColors !== tiles.length) {
-                return false; // Couleurs non uniques
+            const sortedTiles = [...tiles].sort((a, b) => a.value - b.value);
+            let uniqueColors = new Set(sortedTiles.map(t => t.color)).size;
+            
+            if (uniqueColors !== sortedTiles.length) {
+                // Pour une série, les couleurs peuvent être non uniques SEULEMENT si la série est > 4 tuiles (ce qui n'est pas le cas ici, on doit avoir des couleurs différentes)
+                // Dans le cas de 3-4 tuiles, les couleurs doivent être uniques.
+                if (sortedTiles.length <= 4 && uniqueColors !== sortedTiles.length) {
+                     return false; 
+                }
             }
             
             // Les valeurs doivent être consécutives
-            tiles.sort((a, b) => a.value - b.value);
-            for (let i = 1; i < tiles.length; i++) {
-                if (tiles[i].value !== tiles[i-1].value + 1) {
-                    return false; // Valeurs non consécutives
+            for (let i = 1; i < sortedTiles.length; i++) {
+                if (sortedTiles[i].value !== sortedTiles[i-1].value + 1) {
+                    return false; 
                 }
             }
             return true;
         }
 
-        // Vérifie si c'est un GROUPE (Brelan/Carré)
+        // Vérifie si c'est un GROUPE (Même valeur, couleurs différentes)
         function isSet(tiles) {
             // Toutes les valeurs doivent être identiques
             let uniqueValues = new Set(tiles.map(t => t.value)).size;
@@ -289,7 +283,8 @@
             
             // Les couleurs doivent être toutes différentes (3 ou 4 tuiles)
             let uniqueColors = new Set(tiles.map(t => t.color)).size;
-            if (uniqueColors !== tiles.length || uniqueColors < 3) {
+            // Un Groupe est valide seulement avec 3 ou 4 tuiles, toutes de couleurs différentes
+            if (tiles.length < 3 || tiles.length > 4 || uniqueColors !== tiles.length) {
                 return false;
             }
             return true;
