@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu du Morpion</title>
+    <style>
+        /*
+          Le style est le même que le menu, pour garder
+          une apparence cohérente.
+        */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            color: #00ff99; /* Vert néon */
+        }
+        
+        /* Grille du jeu */
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+        
+        /* Les cases */
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #2e2e4d;
+            border: 2px solid #6441a5; /* Violet néon */
+            font-size: 3em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            color: #fff;
+            user-select: none; /* Empêche de sélectionner le X/O */
+        }
+        .cell:hover {
+            background-color: #44446a;
+        }
+        
+        /* Couleurs pour X et O */
+        .cell.x { color: #027afa; } /* Bleu néon */
+        .cell.o { color: #FF8C00; } /* Orange rétro */
+        
+        #status {
+            font-size: 1.5em;
+            height: 30px; /* Espace réservé pour le texte */
+            margin: 10px 0;
+            color: #fff;
+        }
+        
+        /* Boutons */
+        button {
+            background-color: #00ff99;
+            border: none;
+            color: #1a1a2e;
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        /* Lien retour */
+        a {
+            margin-top: 15px;
+            color: #00ff99;
+            text-decoration: none;
+            font-size: 1.1em;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Morpion (VS IA)</h1>
+    
+    <div id="status">C'est à votre tour (X)</div>
+    
+    <div id="game-board"></div>
+    
+    <button id="restartButton">Recommencer</button>
+    
+    <a href="../index.html">Retour au menu</a>
+
+    <script>
+        const boardElement = document.getElementById('game-board');
+        const statusElement = document.getElementById('status');
+        const restartButton = document.getElementById('restartButton');
+        const cells = []; // Va contenir les 9 cases
+        let boardState = ['', '', '', '', '', '', '', '', '']; // L'état du jeu
+        let currentPlayer = 'X'; // Le joueur commence
+        let gameActive = true;
+
+        // Les combinaisons gagnantes
+        const winningConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Lignes
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Colonnes
+            [0, 4, 8], [2, 4, 6]  // Diagonales
+        ];
+
+        // Fonction pour démarrer/redémarrer le jeu
+        function initializeGame() {
+            boardElement.innerHTML = ''; // Vide le plateau
+            cells.length = 0; // Vide le tableau JS
+            boardState = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = 'X';
+            gameActive = true;
+            statusElement.textContent = "C'est à votre tour (X)";
+
+            // Crée les 9 cases (div)
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.index = i; // Ajoute l'attribut "data-index" (de 0 à 8)
+                cell.addEventListener('click', handleCellClick);
+                boardElement.appendChild(cell);
+                cells.push(cell);
+            }
+        }
+
+        // Gère le clic du joueur
+        function handleCellClick(e) {
+            const index = e.target.dataset.index;
+
+            // On vérifie si la case est vide ET si le jeu est actif ET si c'est le tour du joueur
+            if (boardState[index] !== '' || !gameActive || currentPlayer !== 'X') {
+                return; 
+            }
+
+            // Le joueur joue
+            makeMove(index, 'X');
+
+            // On vérifie si le jeu continue
+            if (gameActive) {
+                currentPlayer = 'O';
+                statusElement.textContent = "Tour de l'IA (O)...";
+                // L'IA joue après 500ms
+                setTimeout(aiMove, 500);
+            }
+        }
+
+        // Gère le tour de l'IA (une IA très simple)
+        function aiMove() {
+            if (!gameActive) return;
+
+            // Trouve toutes les cases vides
+            let availableCells = [];
+            boardState.forEach((val, index) => {
+                if (val === '') availableCells.push(index);
+            });
+
+            // L'IA choisit une case au hasard
+            if (availableCells.length > 0) {
+                const move = availableCells[Math.floor(Math.random() * availableCells.length)];
+                makeMove(move, 'O');
+                
+                // Si le jeu n'est pas fini, c'est au tour du joueur
+                if (gameActive) {
+                    currentPlayer = 'X';
+                    statusElement.textContent = "C'est à votre tour (X)";
+                }
+            }
+        }
+
+        // Fonction principale pour jouer un coup
+        function makeMove(index, player) {
+            boardState[index] = player;
+            cells[index].textContent = player;
+            cells[index].classList.add(player.toLowerCase()); // Ajoute la classe 'x' ou 'o' pour la couleur
+
+            if (checkWin(player)) {
+                endGame(false, player); // Pas un match nul, on a un gagnant
+            } else if (boardState.every(cell => cell !== '')) {
+                endGame(true); // Égalité (toutes les cases sont pleines)
+            }
+        }
+
+        // Vérifie si un joueur a gagné
+        function checkWin(player) {
+            return winningConditions.some(combination => {
+                // 'every' vérifie si TOUS les index de la combinaison sont au joueur
+                return combination.every(index => boardState[index] === player);
+            });
+        }
+
+        // Gère la fin de partie
+        function endGame(draw, winner = null) {
+            gameActive = false; // Le jeu est fini, on ne peut plus cliquer
+            if (draw) {
+                statusElement.textContent = "Égalité !";
+            } else {
+                statusElement.textContent = `Le joueur ${winner} a gagné !`;
+                
+                // C'est ici qu'on ajoutera la connexion à ton bot (pour l'XP)
+                if (winner === 'X') {
+                    console.log("Le joueur (X) a gagné !");
+                }
+            }
+        }
+
+        // Lie le bouton "Recommencer" à la fonction
+        restartButton.addEventListener('click', initializeGame);
+
+        // Lancement du jeu au chargement de la page
+        initializeGame();
+    </script>
+</body>
+</html>
