@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pierre-Feuille-Ciseaux</title>
+    <style>
+        /* Thème sombre cohérent */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #00ff99; /* Vert néon */
+        }
+        
+        /* Conteneur des choix (Pierre, Feuille, Ciseaux) */
+        #choices {
+            display: flex;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        /* Boutons de choix */
+        .choice-button {
+            background-color: #2e2e4d;
+            border: 2px solid #6441a5;
+            color: #e0e0e0;
+            padding: 20px;
+            font-size: 3em; /* Grande icône */
+            width: 150px;
+            height: 150px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.2;
+        }
+        .choice-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 15px #6441a5;
+        }
+        .choice-button.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .label {
+            font-size: 0.3em;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+
+        /* Affichage des résultats */
+        #result-display {
+            font-size: 1.8em;
+            margin: 20px 0;
+            min-height: 50px;
+        }
+
+        #score-display {
+            font-size: 1.2em;
+            margin-top: 10px;
+            color: #ccc;
+        }
+
+        /* Bouton Recommencer */
+        #restartButton {
+            background-color: #FF8C00; /* Orange rétro */
+            border: none;
+            color: #1a1a2e;
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            display: none; /* Caché au début */
+        }
+        
+        /* Lien retour */
+        a {
+            display: inline-block;
+            margin-top: 15px;
+            color: #00ff99;
+            text-decoration: none;
+            font-size: 1.1em;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Pierre-Feuille-Ciseaux</h1>
+    
+    <div id="result-display">Faites votre choix pour commencer !</div>
+
+    <div id="choices">
+        <div class="choice-button" data-choice="pierre">
+            🪨
+            <div class="label">Pierre</div>
+        </div>
+        <div class="choice-button" data-choice="feuille">
+            📄
+            <div class="label">Feuille</div>
+        </div>
+        <div class="choice-button" data-choice="ciseaux">
+            ✂️
+            <div class="label">Ciseaux</div>
+        </div>
+    </div>
+    
+    <div id="score-display">Joueur : 0 | Bot : 0</div>
+    
+    <button id="restartButton">Nouvelle Manche</button>
+    
+    <a href="../index.html">Retour au menu</a>
+
+    <script>
+        const choicesElement = document.getElementById('choices');
+        const resultDisplay = document.getElementById('result-display');
+        const scoreDisplay = document.getElementById('score-display');
+        const restartButton = document.getElementById('restartButton');
+        const choiceButtons = document.querySelectorAll('.choice-button');
+
+        const options = ['pierre', 'feuille', 'ciseaux'];
+        let playerScore = 0;
+        let botScore = 0;
+        let gameActive = true;
+        
+        // Lie les clics aux boutons de choix
+        choiceButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (gameActive) {
+                    const playerChoice = button.dataset.choice;
+                    playRound(playerChoice);
+                }
+            });
+        });
+
+        // Gère la logique d'une manche
+        function playRound(playerChoice) {
+            if (!gameActive) return;
+
+            // Choix du Bot (IA simple : aléatoire)
+            const botChoice = options[Math.floor(Math.random() * 3)];
+            
+            let resultText = `Vous (${playerChoice.toUpperCase()}) vs Bot (${botChoice.toUpperCase()}) : `;
+            let winner = 'none';
+
+            // Logique de victoire
+            if (playerChoice === botChoice) {
+                resultText += "Égalité ! 🤝";
+            } else if (
+                (playerChoice === 'pierre' && botChoice === 'ciseaux') ||
+                (playerChoice === 'feuille' && botChoice === 'pierre') ||
+                (playerChoice === 'ciseaux' && botChoice === 'feuille')
+            ) {
+                resultText += "Vous gagnez la manche ! 🎉";
+                playerScore++;
+                winner = 'player';
+            } else {
+                resultText += "Le Bot gagne la manche ! 💀";
+                botScore++;
+                winner = 'bot';
+            }
+            
+            resultDisplay.textContent = resultText;
+            updateScoreDisplay();
+            
+            // On désactive les boutons de choix et affiche le bouton Recommencer
+            choiceButtons.forEach(btn => btn.classList.add('disabled'));
+            restartButton.style.display = 'block';
+            gameActive = false;
+
+            // *** C'est ici qu'on appellera l'XP si on joue au meilleur des 5, par exemple ***
+            if (playerScore === 3) {
+                 resultDisplay.textContent = "🏆 VICTOIRE ! Vous remportez la partie !";
+                 restartButton.textContent = "Nouvelle Partie";
+                 // XP ici : console.log("Le joueur a gagné la partie !");
+            } else if (botScore === 3) {
+                 resultDisplay.textContent = "💀 DÉFAITE ! Le Bot remporte la partie !";
+                 restartButton.textContent = "Nouvelle Partie";
+            }
+        }
+        
+        // Met à jour l'affichage du score
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = `Joueur : ${playerScore} | Bot : ${botScore}`;
+        }
+
+        // Gère le bouton Recommencer (nouvelle manche ou nouvelle partie)
+        restartButton.addEventListener('click', () => {
+            // Si la partie est finie (score de 3)
+            if (playerScore === 3 || botScore === 3) {
+                playerScore = 0;
+                botScore = 0;
+                resultDisplay.textContent = "Faites votre choix pour commencer !";
+                restartButton.textContent = "Nouvelle Manche";
+            } else {
+                resultDisplay.textContent = "Nouvelle manche ! Choisissez.";
+            }
+
+            // Réactive les boutons de choix
+            choiceButtons.forEach(btn => btn.classList.remove('disabled'));
+            restartButton.style.display = 'none';
+            gameActive = true;
+            updateScoreDisplay();
+        });
+    </script>
+</body>
+</html>
