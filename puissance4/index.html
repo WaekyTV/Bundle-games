@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jeu du Puissance 4</title>
     <style>
-        /* Thème sombre cohérent avec le menu */
         body {
             font-family: Arial, sans-serif;
             background-color: #1a1a2e;
@@ -17,21 +16,19 @@
             min-height: 100vh;
             margin: 0;
         }
-        h1 {
-            color: #00ff99; /* Vert néon */
-        }
+        h1 { color: #00ff99; }
         
         /* Conteneur de la grille de jeu */
         #game-board {
             display: grid;
-            grid-template-columns: repeat(7, 60px); /* 7 colonnes */
-            grid-template-rows: repeat(6, 60px); /* 6 lignes */
+            grid-template-columns: repeat(7, 60px); 
+            grid-template-rows: repeat(6, 60px); 
             gap: 5px;
             background-color: #027afa; /* Bleu néon (la grille) */
             border: 5px solid #014a8f;
             border-radius: 10px;
             padding: 5px;
-            position: relative; /* Pour les "jetons" */
+            position: relative;
         }
         
         /* Les cases (trous) */
@@ -39,9 +36,10 @@
             width: 60px;
             height: 60px;
             background-color: #1a1a2e; /* Couleur du fond (trou) */
-            border-radius: 50%; /* Trous ronds */
-            cursor: pointer;
-            transition: background-color 0.2s;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
         /* Les jetons */
@@ -49,72 +47,55 @@
             width: 50px;
             height: 50px;
             border-radius: 50%;
-            margin: 5px; /* Centrer le jeton dans la case de 60px */
-            box-sizing: border-box; /* Pour que la bordure soit incluse */
+            margin: 5px;
+            box-sizing: border-box;
+            transition: transform 0.5s ease-in; /* Transition pour l'effet de chute */
         }
         .token.red {
             background-color: #FF4136; /* Rouge */
             border: 3px solid #b32d25;
+            box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
         }
         .token.yellow {
             background-color: #FFDC00; /* Jaune */
             border: 3px solid #b39b00;
+            box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
         }
         
+        /* Position de départ (cachée en haut de la colonne) */
+        .token.falling {
+            transform: translateY(-370px); /* Hauteur de la grille plus 10px */
+        }
+
         /* Colonnes cliquables (superposées à la grille) */
         #click-targets {
             display: grid;
             grid-template-columns: repeat(7, 60px);
             gap: 5px;
             position: absolute;
-            top: 5px; /* Aligné avec le padding de la grille */
+            top: 5px;
             left: 5px;
-            padding: 5px 0; /* Simule le padding haut/bas */
+            padding: 5px 0; 
         }
         .column-target {
             width: 60px;
-            height: 370px; /* 6 * 60px + 5 * 5px */
+            height: 370px; 
             cursor: pointer;
             z-index: 10;
         }
         .column-target:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(0, 255, 153, 0.1); /* Survol vert néon */
             border-radius: 10px;
         }
         
-        #status {
-            font-size: 1.5em;
-            height: 30px;
-            margin: 20px 0;
-            color: #fff;
-        }
-        
-        /* Boutons et lien */
-        button {
-            background-color: #00ff99;
-            border: none;
-            color: #1a1a2e;
-            padding: 10px 20px;
-            font-size: 1em;
-            font-weight: bold;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 5px;
-        }
-        a {
-            margin-top: 15px;
-            color: #00ff99;
-            text-decoration: none;
-            font-size: 1.1em;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
+        #status { font-size: 1.5em; height: 30px; margin: 20px 0; color: #fff; }
+        button { background-color: #00ff99; border: none; color: #1a1a2e; padding: 10px 20px; font-size: 1em; font-weight: bold; border-radius: 5px; cursor: pointer; margin: 5px; }
+        a { display: inline-block; margin-top: 15px; color: #00ff99; text-decoration: none; font-size: 1.1em; }
     </style>
 </head>
 <body>
 
-    <h1>Puissance 4 (VS IA)</h1>
+    <h1>Puissance 4</h1>
     <div id="status">C'est à votre tour (Rouge)</div>
     
     <div id="game-container" style="position: relative;">
@@ -128,17 +109,51 @@
     <script>
         const ROWS = 6;
         const COLS = 7;
+        // La variable BASE_API_URL DOIT être définie ici pour l'XP !
+        const BASE_API_URL = 'VOTRE_ADRESSE_API_ICI'; // <-- N'oubliez pas de la changer
+        let discordUserId = null;
 
         const boardElement = document.getElementById('game-board');
         const statusElement = document.getElementById('status');
         const restartButton = document.getElementById('restartButton');
         const clickTargetsElement = document.getElementById('click-targets');
         
-        let boardState = []; // Tableau 2D (lignes, colonnes)
-        let cells = []; // Tableau 2D pour les éléments HTML
-        
-        let currentPlayer = 'red'; // Le joueur est 'red'
+        let boardState = []; 
+        let cells = [];
+        let currentPlayer = 'red';
         let gameActive = true;
+        
+        // Fonction pour lire l'ID utilisateur depuis l'URL (pour l'XP)
+        function getUserIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('user_id');
+            if (id && /^\d+$/.test(id)) { discordUserId = id; }
+        }
+        getUserIdFromUrl();
+
+        function notifyBotWin(xpAmount) {
+            if (!discordUserId || BASE_API_URL === 'VOTRE_ADRESSE_API_ICI') {
+                 console.error("XP NON ATTRIBUÉ: ID utilisateur ou API non configurée.");
+                 return;
+            }
+            
+            fetch(BASE_API_URL + '/game/win', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: discordUserId, xp_gained: xpAmount })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    statusElement.textContent += ` (Récompense: ${xpAmount} XP!)`;
+                } else {
+                    statusElement.textContent += ` (Erreur XP: ${data.message})`;
+                }
+            })
+            .catch(error => {
+                statusElement.textContent += ` (Erreur Connexion API)`;
+            });
+        }
 
         // Fonction pour démarrer/redémarrer le jeu
         function initializeGame() {
@@ -147,14 +162,11 @@
             boardState = [];
             cells = [];
             
-            // 1. Créer la structure de données (boardState) et la grille visuelle (cells)
             for (let r = 0; r < ROWS; r++) {
                 let rowState = [];
                 let rowCells = [];
                 for (let c = 0; c < COLS; c++) {
-                    rowState.push(null); // 'null' = case vide
-                    
-                    // Crée la case visuelle (le trou)
+                    rowState.push(null);
                     const cell = document.createElement('div');
                     cell.classList.add('cell');
                     cell.dataset.row = r;
@@ -166,7 +178,6 @@
                 cells.push(rowCells);
             }
             
-            // 2. Créer les 7 colonnes cliquables
             for (let c = 0; c < COLS; c++) {
                 const target = document.createElement('div');
                 target.classList.add('column-target');
@@ -185,34 +196,23 @@
             if (!gameActive || currentPlayer !== 'red') return;
 
             const col = parseInt(e.target.dataset.col);
-            
-            // Trouver la case vide la plus basse dans cette colonne (gravité)
             const row = findNextOpenRow(col);
 
             if (row === -1) {
-                // Colonne pleine
                 statusElement.textContent = "Cette colonne est pleine !";
-                setTimeout(() => {
-                    if (gameActive && currentPlayer === 'red') {
-                         statusElement.textContent = "C'est à votre tour (Rouge)";
-                    }
-                }, 1500);
+                setTimeout(() => { if (gameActive) { statusElement.textContent = "C'est à votre tour (Rouge)"; } }, 1500);
                 return;
             }
 
-            // Le joueur joue
             makeMove(row, col, 'red');
 
-            // Vérifier si le jeu continue
             if (gameActive) {
                 currentPlayer = 'yellow';
                 statusElement.textContent = "Tour de l'IA (Jaune)...";
-                // L'IA joue après 500ms
                 setTimeout(aiMove, 500);
             }
         }
         
-        // Gère le tour de l'IA (très simple)
         function aiMove() {
             if (!gameActive) return;
 
@@ -237,7 +237,7 @@
             // 3. Sinon, jouer au hasard
             let availableCols = [];
             for (let c = 0; c < COLS; c++) {
-                if (boardState[0][c] === null) { // Si la case du haut est vide
+                if (boardState[0][c] === null) {
                     availableCols.push(c);
                 }
             }
@@ -250,23 +250,21 @@
             }
         }
         
-        // Trouve une colonne où 'player' peut gagner
         function findWinningMove(player) {
             for (let c = 0; c < COLS; c++) {
                 let r = findNextOpenRow(c);
                 if (r !== -1) {
-                    boardState[r][c] = player; // Essayer le coup
+                    boardState[r][c] = player;
                     if (checkWin(player)) {
-                        boardState[r][c] = null; // Annuler le coup
-                        return c; // Colonne gagnante trouvée
+                        boardState[r][c] = null;
+                        return c;
                     }
-                    boardState[r][c] = null; // Annuler le coup
+                    boardState[r][c] = null;
                 }
             }
-            return -1; // Pas de coup gagnant
+            return -1;
         }
         
-        // Change le tour après le coup de l'IA
         function endTurn() {
             if (gameActive) {
                 currentPlayer = 'red';
@@ -274,24 +272,32 @@
             }
         }
 
-        // Trouve la ligne la plus basse vide
         function findNextOpenRow(col) {
-            for (let r = ROWS - 1; r >= 0; r--) { // De bas en haut
+            for (let r = ROWS - 1; r >= 0; r--) {
                 if (boardState[r][col] === null) {
                     return r;
                 }
             }
-            return -1; // Colonne pleine
+            return -1;
         }
 
         // Fonction principale pour jouer un coup
         function makeMove(row, col, player) {
             boardState[row][col] = player;
             
-            // Crée le jeton visuel et l'ajoute à la case
+            const targetCell = cells[row][col];
             const token = document.createElement('div');
             token.classList.add('token', player);
-            cells[row][col].appendChild(token); // Ajoute le jeton dans la case
+            
+            // 1. Position initiale : Le jeton est "en chute"
+            token.classList.add('falling'); 
+            
+            targetCell.appendChild(token); 
+            
+            // 2. Déclenchement de la chute (attente micro-tâche)
+            requestAnimationFrame(() => {
+                token.classList.remove('falling');
+            });
 
             if (checkWin(player)) {
                 endGame(false, player);
@@ -305,45 +311,25 @@
             // Horizontal
             for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c <= COLS - 4; c++) {
-                    if (boardState[r][c] === player &&
-                        boardState[r][c+1] === player &&
-                        boardState[r][c+2] === player &&
-                        boardState[r][c+3] === player) {
-                        return true;
-                    }
+                    if (boardState[r][c] === player && boardState[r][c+1] === player && boardState[r][c+2] === player && boardState[r][c+3] === player) { return true; }
                 }
             }
             // Vertical
             for (let c = 0; c < COLS; c++) {
                 for (let r = 0; r <= ROWS - 4; r++) {
-                    if (boardState[r][c] === player &&
-                        boardState[r+1][c] === player &&
-                        boardState[r+2][c] === player &&
-                        boardState[r+3][c] === player) {
-                        return true;
-                    }
+                    if (boardState[r][c] === player && boardState[r+1][c] === player && boardState[r+2][c] === player && boardState[r+3][c] === player) { return true; }
                 }
             }
             // Diagonale (descendante)
             for (let r = 0; r <= ROWS - 4; r++) {
                 for (let c = 0; c <= COLS - 4; c++) {
-                    if (boardState[r][c] === player &&
-                        boardState[r+1][c+1] === player &&
-                        boardState[r+2][c+2] === player &&
-                        boardState[r+3][c+3] === player) {
-                        return true;
-                    }
+                    if (boardState[r][c] === player && boardState[r+1][c+1] === player && boardState[r+2][c+2] === player && boardState[r+3][c+3] === player) { return true; }
                 }
             }
             // Diagonale (ascendante)
             for (let r = 3; r < ROWS; r++) {
                 for (let c = 0; c <= COLS - 4; c++) {
-                    if (boardState[r][c] === player &&
-                        boardState[r-1][c+1] === player &&
-                        boardState[r-2][c+2] === player &&
-                        boardState[r-3][c+3] === player) {
-                        return true;
-                    }
+                    if (boardState[r][c] === player && boardState[r-1][c+1] === player && boardState[r-2][c+2] === player && boardState[r-3][c+3] === player) { return true; }
                 }
             }
             return false;
@@ -352,14 +338,17 @@
         // Gère la fin de partie
         function endGame(draw, winner = null) {
             gameActive = false;
+            // Retirer les écouteurs de clic
+            clickTargetsElement.querySelectorAll('.column-target').forEach(target => target.removeEventListener('click', handleColumnClick));
+
             if (draw) {
-                statusElement.textContent = "Égalité !";
-            } else {
-                statusElement.textContent = `Le joueur ${winner === 'red' ? 'Rouge' : 'Jaune'} a gagné !`;
+                statusElement.textContent = "🤝 Égalité !";
+            } else if (winner) {
+                let winnerColor = winner === 'red' ? 'Rouge' : 'Jaune';
+                statusElement.textContent = `🏆 Le joueur ${winnerColor} a gagné !`;
                 
-                // C'est ici qu'on ajoutera la connexion à ton bot (pour l'XP)
                 if (winner === 'red') {
-                    console.log("Le joueur (Rouge) a gagné !");
+                    notifyBotWin(50); // XP pour la victoire du joueur
                 }
             }
         }
@@ -370,5 +359,3 @@
         // Lancement du jeu
         initializeGame();
     </script>
-</body>
-</html>
