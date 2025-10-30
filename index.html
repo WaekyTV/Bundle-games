@@ -2,56 +2,119 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rummikub (Drag & Drop)</title>
-    
-    <link rel="stylesheet" href="css/styles.css"> 
-    
+    <title>Poxel Arcade Bundle</title>
     <style>
-        a.back-link {
-            display: inline-block;
-            margin-top: 25px;
-            color: #00ff99;
-            text-decoration: none;
-            font-size: 1.2em;
-            font-family: Arial, sans-serif;
-            background-color: #2e2e4d;
-            padding: 10px 15px;
-            border-radius: 5px;
-            border: 2px solid #6441a5;
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #1a1a2e; /* Fond sombre */
+            color: #e0e0e0; /* Texte clair */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
         }
-        a.back-link:hover {
-            background-color: #44446a;
+        .container {
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 3em;
+            color: #00ff99; /* Vert néon (de ton bot) */
+            text-shadow: 0 0 10px #00ff99, 0 0 20px #00ff99;
+            margin-bottom: 40px;
+        }
+        .game-grid {
+            display: grid;
+            /* Crée une grille flexible qui s'adapte à la taille de l'écran */
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .game-card {
+            background-color: #2e2e4d;
+            border: 2px solid #6441a5; /* Violet néon (de ton bot) */
+            border-radius: 10px;
+            padding: 20px;
+            text-decoration: none; /* Enlève le soulignement des liens */
+            color: #e0e0e0;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .game-card:hover {
+            transform: translateY(-5px); /* Effet de "soulèvement" */
+            box-shadow: 0 0 15px #6441a5;
+            color: #fff;
+        }
+        /* Style pour les jeux que tu n'as pas encore ajoutés */
+        .game-card.disabled {
+            background-color: #444;
+            border-color: #666;
+            color: #888;
+            pointer-events: none; /* Non cliquable */
         }
     </style>
 </head>
 <body>
-    <div class="main-container">
-        <h1>Rummikub</h1>
-        <div class="game-container">
-            <div class="player-container">
-                <h2>Mon Chevalet</h2>
-                <div class="player-hand" id="player-hand">
-                    </div>
-                <div class="player-actions">
-                    <button id="draw-button">Piocher</button>
-                    <button id="sort-group-button">Trier par Groupe</button>
-                    <button id="sort-run-button">Trier par Série</button>
-                </div>
-            </div>
-            
-            <div class="board-container">
-                <h2>Tapis Central</h2>
-                <div class="board" id="board">
-                    </div>
-                <button id="validate-board-button">Valider le Tapis</button>
-            </div>
-        </div>
 
-        <a href="../index.html" class="back-link">Retour au menu</a>
+    <div class="container">
+        <h1>Poxel Arcade</h1>
+
+        <div class="game-grid">
+
+    <a href="morpion/index.html" class="game-card">
+        Morpion
+    </a>
+
+    <a href="puissance4/index.html" class="game-card">
+        Puissance 4
+    </a>
+
+    <a href="snake/index.html" class="game-card">
+        Snake
+    </a>
+
+    <a href="demineur/index.html" class="game-card">
+        Démineur
+    </a>
+
+    <a href="pendu/index.html" class="game-card">
+        Pendu
+    </a>
+
+    <a href="pfc/index.html" class="game-card">
+        P-F-Ciseaux
+    </a>
+
+    <a href="echecs/index.html" class="game-card">
+        Échecs
+    </a>
+
+    <a href="dames/index.html" class="game-card">
+        Dames
+    </a>
+
+    <a href="moulin/index.html" class="game-card">
+        Jeu du Moulin
+    </a>
+
+    <a href="rubik/index.html" class="game-card">
+        Rubik's Cube
+    <a href="rumikube/index.html" class="game-card">
+    Rummikub
+    </a>
+
+    <a href="abalone/index.html" class="game-card">
+        Abalone
+    </a>
+
+</div>
     </div>
-    
-    <script src="js/game.js"></script> 
+
 </body>
 </html>
+
+Correction: Activation Rubik's et Abalone.
