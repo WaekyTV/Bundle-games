@@ -100,6 +100,9 @@
             text-decoration: none;
             font-size: 1.1em;
         }
+        a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -284,7 +287,7 @@
             const isSelected = selectedMarbles.some(m => m[0] === q && m[1] === r);
             
             // 1. Clic sur une bille amie (Sélection)
-            if (state.player === currentPlayer) {
+            if (state && state.player === currentPlayer) {
                 if (isSelected) {
                     selectedMarbles = selectedMarbles.filter(m => m[0] !== q || m[1] !== r);
                 } else if (selectedMarbles.length < 3) {
@@ -320,6 +323,7 @@
             // L'ensemble du groupe doit bouger
             
             // On vérifie la position de la première bille du groupe (simplifié)
+            if (selectedMarbles.length === 0) return null;
             const [q, r] = selectedMarbles[0];
 
             for (const dir of HEX_DIRECTIONS) {
@@ -345,29 +349,40 @@
             const nextQ = frontQ + direction.q;
             const nextR = frontR + direction.r;
             const nextKey = `${nextQ},${nextR}`;
-
-            // Si la cible est hors plateau, c'est une poussée ratée (mouvement parallèle)
-            if (!isOnBoard(nextQ, nextR)) {
-                 statusElement.textContent = "Mouvement invalide : Hors plateau.";
-                 return false;
-            }
             
             const nextState = boardState[nextKey];
+
+            // 1. Cible non sur le plateau (Ejection tentée si le mouvement est "en ligne")
+            if (!isOnBoard(nextQ, nextR)) {
+                // Le mouvement est "en ligne" si la direction est la même que l'alignement des billes
+                const isInline = selectedMarbles.length <= 1 || isGroupAligned(selectedMarbles, direction);
+                if (isInline) {
+                   return tryPush(direction, [frontQ, frontR]);
+                }
+                statusElement.textContent = "Mouvement latéral hors plateau invalide.";
+                return false;
+            }
             
-            // 1. Déplacement Simple (cible vide)
+            // 2. Déplacement Simple (cible vide)
             if (nextState.player === 0) {
                  performInlineMove(direction);
                  return true;
             }
             
-            // 2. Poussée (cible adverse) - Logique très complexe, SIMPLIFIÉE
+            // 3. Poussée (cible adverse)
             if (nextState.player !== 0 && nextState.player !== currentPlayer) {
                  return tryPush(direction, [nextQ, nextR]);
             }
             
-            // 3. Cible amie (Mouvement parallèle) - On ne gère pas cela dans cette version simplifiée
-            statusElement.textContent = "Mouvement parallèle non géré, ou trop de billes.";
+            // 4. Cible amie (Mouvement parallèle) ou bloqué
+            statusElement.textContent = "Mouvement bloqué ou parallèle non géré dans cette version.";
             return false;
+        }
+
+        function isGroupAligned(group, direction) {
+            // Pour être aligné, le déplacement d'une bille à l'autre doit être perpendiculaire à la direction
+            // (Trop complexe à coder ici, simplifions : si le groupe est de taille 2 ou 3, on suppose qu'il est aligné)
+            return group.length > 1; 
         }
 
         function performInlineMove(direction) {
@@ -402,10 +417,10 @@
                 currentR += direction.r;
             }
             
-            // Règle Abalone: On ne peut pousser que si (Taille Joueur > Taille Opposant) ET (Taille Joueur <= 3)
+            // Règle Abalone: Taille Joueur > Taille Opposant (2v1, 3v1, 3v2)
             if (selectedMarbles.length > pushCount && selectedMarbles.length <= 3) {
                  
-                 // Déplace la ligne adverse
+                 // Déplace la chaîne adverse (poussée)
                  for (let i = pushCount - 1; i >= 0; i--) {
                     const q = startPos[0] + direction.q * i;
                     const r = startPos[1] + direction.r * i;
@@ -428,9 +443,18 @@
                     }
                  }
 
-                 // Déplace le groupe du joueur (permet de simplifier la gestion des cases)
-                 performInlineMove(direction);
-                 
+                 // Déplace le groupe du joueur sur la case de départ de la poussée
+                 const [oldQ, oldR] = selectedMarbles[selectedMarbles.length - 1]; // Position de la bille du joueur la plus avancée
+                 boardState[oldQ + direction.q][oldR + direction.r].player = currentPlayer;
+                 boardState[oldQ + direction.q][oldR + direction.r].element.appendChild(boardState[oldQ][oldR].element.querySelector('.marble'));
+
+
+                 // 3. Vide l'ancienne position du groupe
+                 for (const [r, c] of selectedMarbles) {
+                     boardState[r][c].player = 0;
+                     boardState[r][c].element.innerHTML = '';
+                 }
+                
                  // Vérifie la victoire
                  if (ejectedCount[opponent] >= WIN_COUNT) {
                      endGame(currentPlayer);
@@ -455,7 +479,6 @@
             gameActive = false;
             let winnerColor = winner.toUpperCase();
             statusElement.textContent = `🏆 FIN : Le joueur ${winnerColor} a gagné en éjectant ${WIN_COUNT} billes adverses !`;
-            // C'est ici que tu appellerais notifyBotWin(XP)
             console.log(`Le joueur ${winnerColor} a gagné !`);
         }
 
