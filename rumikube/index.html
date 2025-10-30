@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rummikub Simplifié</title>
+    <style>
+        /* Thème sombre cohérent */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            user-select: none;
+        }
+        h1 {
+            color: #00ff99; /* Vert néon */
+            margin-bottom: 5px;
+        }
+        
+        /* Conteneurs pour les tuiles */
+        .tile-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding: 10px;
+            border: 2px solid #6441a5;
+            margin: 10px 0;
+            width: 100%;
+            max-width: 800px;
+            min-height: 50px;
+        }
+        
+        /* Style des tuiles */
+        .tile {
+            width: 40px;
+            height: 60px;
+            border: 3px solid #333;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        
+        /* Couleurs des tuiles */
+        .tile.red { background-color: #FF4136; color: white; }
+        .tile.blue { background-color: #0074D9; color: white; }
+        .tile.yellow { background-color: #FFDC00; color: #1a1a2e; }
+        .tile.black { background-color: #111; color: white; }
+        
+        /* Tuile sélectionnée */
+        .tile.selected {
+            transform: translateY(-5px);
+            box-shadow: 0 0 10px #00ff99; /* Vert néon */
+            border-color: #00ff99;
+        }
+
+        /* Statut */
+        #status {
+            font-size: 1.5em;
+            margin: 15px 0;
+            min-height: 30px;
+            color: #FFDC00;
+        }
+        
+        /* Boutons */
+        button {
+            background-color: #00ff99;
+            border: none;
+            color: #1a1a2e;
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        /* Lien retour */
+        a {
+            display: inline-block;
+            margin-top: 15px;
+            color: #00ff99;
+            text-decoration: none;
+            font-size: 1.1em;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Rummikub Simplifié</h1>
+    
+    <div id="status">Générez un chevalet pour commencer.</div>
+
+    <h2>Mon Chevalet</h2>
+    <div id="hand-container" class="tile-container">
+        </div>
+    
+    <h2>Tuiles Sélectionnées (pour combinaison)</h2>
+    <div id="selected-container" class="tile-container">
+        </div>
+
+    <div>
+        <button id="newHandBtn">Générer Nouveau Chevalet (14 tuiles)</button>
+        <button id="validateBtn">Valider Combinaison</button>
+    </div>
+
+    <a href="../index.html">Retour au menu</a>
+
+    <script>
+        const TILE_COLORS = ['red', 'blue', 'yellow', 'black'];
+        const TILE_VALUES = Array.from({ length: 13 }, (_, i) => i + 1); // 1 à 13
+
+        const handContainer = document.getElementById('hand-container');
+        const selectedContainer = document.getElementById('selected-container');
+        const statusElement = document.getElementById('status');
+        const newHandBtn = document.getElementById('newHandBtn');
+        const validateBtn = document.getElementById('validateBtn');
+
+        let hand = []; // Le chevalet actuel
+
+        // Génère un nouveau chevalet de 14 tuiles uniques
+        function generateNewHand() {
+            const allTiles = [];
+            TILE_COLORS.forEach(color => {
+                TILE_VALUES.forEach(value => {
+                    allTiles.push({ color, value, id: `${color}-${value}-1` });
+                    // Simplification: pas de doubles tuiles pour le moment
+                });
+            });
+
+            // Mélanger et prendre 14
+            for (let i = allTiles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allTiles[i], allTiles[j]] = [allTiles[j], allTiles[i]];
+            }
+
+            hand = allTiles.slice(0, 14);
+            renderHand();
+            renderSelected([]);
+            statusElement.textContent = "Sélectionnez 3 tuiles ou plus pour une combinaison.";
+        }
+
+        // Dessine le chevalet
+        function renderHand() {
+            handContainer.innerHTML = '';
+            hand.sort((a, b) => a.value - b.value || a.color.localeCompare(b.color)); // Tri pour l'affichage
+            
+            hand.forEach((tile, index) => {
+                const tileElement = createTileElement(tile, index, 'hand');
+                handContainer.appendChild(tileElement);
+            });
+        }
+        
+        // Dessine les tuiles sélectionnées
+        function renderSelected(selectedTiles) {
+            selectedContainer.innerHTML = '';
+            selectedTiles.forEach((tile, index) => {
+                const tileElement = createTileElement(tile, index, 'selected');
+                selectedContainer.appendChild(tileElement);
+            });
+        }
+
+        // Crée l'élément HTML d'une tuile
+        function createTileElement(tile, index, source) {
+            const tileElement = document.createElement('div');
+            tileElement.classList.add('tile', tile.color);
+            tileElement.textContent = tile.value;
+            tileElement.dataset.color = tile.color;
+            tileElement.dataset.value = tile.value;
+            tileElement.dataset.originalIndex = index; // Garde l'index dans le chevalet
+            
+            // Logique de clic
+            tileElement.addEventListener('click', () => {
+                if (source === 'hand') {
+                    moveTileToSelected(index);
+                } else {
+                    moveTileToHand(index);
+                }
+            });
+
+            return tileElement;
+        }
+
+        // Déplace une tuile du chevalet vers la zone sélectionnée
+        function moveTileToSelected(index) {
+            const tile = hand[index];
+            tile.isSelected = true;
+            hand.splice(index, 1); // Retire du chevalet
+            renderHand();
+            
+            // Ajoute à la zone sélectionnée
+            const selectedTiles = getSelectedTiles();
+            selectedTiles.push(tile);
+            selectedTiles.sort((a, b) => a.value - b.value); // Tri par valeur pour validation
+            renderSelected(selectedTiles);
+        }
+
+        // Déplace une tuile de la zone sélectionnée vers le chevalet
+        function moveTileToHand(index) {
+            const selectedTiles = getSelectedTiles();
+            const tile = selectedTiles[index];
+            
+            tile.isSelected = false;
+            selectedTiles.splice(index, 1); // Retire de la sélection
+            
+            hand.push(tile); // Remet dans le chevalet
+            renderHand();
+            renderSelected(selectedTiles);
+        }
+        
+        // Récupère les tuiles sélectionnées
+        function getSelectedTiles() {
+             // Simplement en lisant la zone sélectionnée (moins propre mais fonctionnel)
+             const tiles = [];
+             Array.from(selectedContainer.children).forEach(el => {
+                 tiles.push({
+                     color: el.dataset.color,
+                     value: parseInt(el.dataset.value)
+                 });
+             });
+             return tiles;
+        }
+
+        // --- Logique de Validation ---
+
+        function validateCombination() {
+            const selectedTiles = getSelectedTiles();
+            
+            if (selectedTiles.length < 3) {
+                statusElement.textContent = "❌ Combinaison invalide : Vous devez sélectionner au moins 3 tuiles.";
+                return;
+            }
+            
+            // 1. Vérifie si c'est une SÉRIE (Suite de valeurs, couleurs différentes)
+            if (isRun(selectedTiles)) {
+                statusElement.textContent = "✅ VALIDÉ : C'est une SÉRIE (Suite). Bravo !";
+                // notifyBotWin(50); // XP
+                return;
+            }
+            
+            // 2. Vérifie si c'est un GROUPE (Même valeur, couleurs différentes)
+            if (isSet(selectedTiles)) {
+                statusElement.textContent = "✅ VALIDÉ : C'est un GROUPE (Brelan/Carré). Bravo !";
+                // notifyBotWin(50); // XP
+                return;
+            }
+            
+            statusElement.textContent = "❌ Combinaison invalide. Ni Suite, ni Groupe.";
+        }
+
+        // Vérifie si c'est une SÉRIE (Suite)
+        function isRun(tiles) {
+            // Doit avoir des valeurs consécutives et toutes les couleurs doivent être différentes
+            let uniqueColors = new Set(tiles.map(t => t.color)).size;
+            if (uniqueColors !== tiles.length) {
+                return false; // Couleurs non uniques
+            }
+            
+            // Les valeurs doivent être consécutives
+            tiles.sort((a, b) => a.value - b.value);
+            for (let i = 1; i < tiles.length; i++) {
+                if (tiles[i].value !== tiles[i-1].value + 1) {
+                    return false; // Valeurs non consécutives
+                }
+            }
+            return true;
+        }
+
+        // Vérifie si c'est un GROUPE (Brelan/Carré)
+        function isSet(tiles) {
+            // Toutes les valeurs doivent être identiques
+            let uniqueValues = new Set(tiles.map(t => t.value)).size;
+            if (uniqueValues !== 1) {
+                return false;
+            }
+            
+            // Les couleurs doivent être toutes différentes (3 ou 4 tuiles)
+            let uniqueColors = new Set(tiles.map(t => t.color)).size;
+            if (uniqueColors !== tiles.length || uniqueColors < 3) {
+                return false;
+            }
+            return true;
+        }
+
+
+        // --- Événements ---
+        newHandBtn.addEventListener('click', generateNewHand);
+        validateBtn.addEventListener('click', validateCombination);
+
+        // Lancement du jeu
+        generateNewHand();
+    </script>
+</body>
+</html>
