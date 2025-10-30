@@ -1,79 +1,30 @@
 /* rumikube/css/styles.css */
 body {
-    font-family: Arial, sans-serif;
-    background-color: #1a1a2e;
-    color: #e0e0e0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
-    margin: 0;
-    padding: 20px;
-    user-select: none;
+    font-family: Arial, sans-serif; background-color: #1a1a2e; color: #e0e0e0;
+    display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+    margin: 0; padding: 20px; user-select: none;
 }
 h1 { color: #00ff99; margin-bottom: 5px; }
 h2 { border-bottom: 1px dashed #6441a5; width: 100%; max-width: 900px; text-align: left; padding-bottom: 5px;}
-
-/* Conteneurs pour les tuiles */
 .tile-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    padding: 10px;
-    margin: 10px 0;
-    width: 100%;
-    max-width: 900px;
-    min-height: 80px;
-    border-radius: 8px;
-    align-content: flex-start;
+    display: flex; flex-wrap: wrap; gap: 5px; padding: 10px; margin: 10px 0;
+    width: 100%; max-width: 900px; min-height: 80px; border-radius: 8px; align-content: flex-start;
 }
-
-/* Chevalet (Main du joueur) */
-#hand-container {
-    background-color: #333;
-    border: 3px solid #6441a5;
-    min-height: 120px; /* Plus d'espace */
-}
-/* Plateau de Jeu (Tapis) */
-#board-container {
-    background-color: #4b4b4b; /* Tapis central */
-    border: 3px solid #00ff99;
-    min-height: 200px;
-}
-
-/* Style des tuiles */
+#hand-container { background-color: #333; border: 3px solid #6441a5; min-height: 120px; }
+#board-container { background-color: #4b4b4b; border: 3px solid #00ff99; min-height: 200px; }
 .tile {
-    width: 45px;
-    height: 65px;
-    border-radius: 5px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.5em;
-    font-weight: 900;
-    cursor: pointer;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 45px; height: 65px; border-radius: 5px; display: flex; justify-content: center;
+    align-items: center; font-size: 1.5em; font-weight: 900; cursor: pointer;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.2);
 }
-
-/* Couleurs des tuiles officielles */
 .tile.red { background-color: #D93B3B; color: white; }
 .tile.blue { background-color: #1A75B2; color: white; }
 .tile.yellow { background-color: #FFC300; color: #1a1a2e; }
 .tile.black { background-color: #1c1c1c; color: white; }
-.tile.joker { background-color: #000; color: #00ff99; border: 2px dashed #00ff99; } /* Style Joker */
-
-/* Tuile sélectionnée (pour le drag and drop simulé) */
-.tile.active {
-    transform: translateY(-5px) scale(1.05);
-    box-shadow: 0 0 15px #FFDC00; 
-    border-color: #FFDC00;
-}
-
-/* Statut et Infos */
+.tile.joker { background-color: #000; color: #00ff99; border: 2px dashed #00ff99; }
+.tile.active { transform: translateY(-5px) scale(1.05); box-shadow: 0 0 15px #FFDC00; border-color: #FFDC00; }
 #status { font-size: 1.2em; margin: 15px 0; min-height: 30px; color: #FFDC00; }
 .info { color: #ccc; margin: 5px 0 15px 0; }
-
-/* Boutons */
 button:disabled { background-color: #555; color: #999; cursor: not-allowed; }
 button { background-color: #00ff99; border: none; color: #1a1a2e; padding: 10px 20px; font-size: 1em; font-weight: bold; border-radius: 5px; cursor: pointer; margin: 5px; }
+a { color: #00ff99; }
