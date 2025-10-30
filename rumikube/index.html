@@ -1,84 +1,57 @@
-/* Fichier combiné : main.css + board.css + player.css + tile.css */
-:root {
-  --tile-width: 45px;
-  --tile-height: 65px;
-  --tile-border-radius: 5px;
-  --blue-tile: #1A75B2;
-  --red-tile: #D93B3B;
-  --yellow-tile: #FFC300;
-  --black-tile: #1c1c1c;
-  --main-bg-color: #1a1a2e; /* Modifié par Poxel */
-  --font-color: #e0e0e0; /* Modifié par Poxel */
-  --board-bg-color: #4b4b4b; /* Modifié par Poxel */
-  --player-bg-color: #333; /* Modifié par Poxel */
-  --font-url: '../font/VarelaRound-Regular.woff'; 
-}
-@font-face {
-    font-family: 'Varela Round';
-    src: url(var(--font-url)) format('woff');
-}
-* { box-sizing: border-box; }
-body {
-  background-color: var(--main-bg-color); color: var(--font-color);
-  font-family: Arial, sans-serif; display: flex; flex-direction: column;
-  align-items: center; min-height: 100vh; margin: 0; padding: 20px;
-}
-h1 { color: #00ff99; margin-bottom: 5px; }
-h2 {
-  border-bottom: 1px dashed #6441a5; width: 100%;
-  max-width: 900px; text-align: left; padding-bottom: 5px;
-}
-.main-container {
-  width: 100%; max-width: 1000px; display: flex;
-  flex-direction: column; align-items: center;
-}
-.game-container { width: 100%; }
-button {
-  background-color: #00ff99; border: none; color: #1a1a2e;
-  padding: 10px 20px; font-size: 1em; font-weight: bold;
-  border-radius: 5px; cursor: pointer; margin: 5px;
-}
-button:hover { opacity: 0.9; }
-.board-container {
-  width: 100%; display: flex; flex-direction: column;
-  align-items: center; margin-top: 20px;
-}
-.board {
-  width: 100%; max-width: 900px; min-height: 200px;
-  background-color: var(--board-bg-color); border: 3px solid #00ff99;
-  border-radius: 8px; padding: 10px; display: flex;
-  flex-wrap: wrap; gap: 5px; align-content: flex-start;
-}
-#validate-board-button { margin-top: 10px; }
-.player-container {
-  width: 100%; display: flex; flex-direction: column; align-items: center;
-}
-.player-hand {
-  width: 100%; max-width: 900px; min-height: 120px;
-  background-color: var(--player-bg-color); border: 3px solid #6441a5;
-  border-radius: 8px; padding: 10px; display: flex;
-  flex-wrap: wrap; gap: 5px; align-content: flex-start;
-}
-.player-actions { margin-top: 10px; }
-.tile {
-  width: var(--tile-width); height: var(--tile-height);
-  border-radius: var(--tile-border-radius); display: flex;
-  justify-content: center; align-items: center; font-size: 1.5em;
-  font-weight: 900; cursor: pointer;
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  font-family: 'Varela Round', sans-serif; 
-}
-.tile.red { background-color: var(--red-tile); color: white; }
-.tile.blue { background-color: var(--blue-tile); color: white; }
-.tile.yellow { background-color: var(--yellow-tile); color: #1a1a2e; }
-.tile.black { background-color: var(--black-tile); color: white; }
-.joker { font-size: 0.8em; }
-.tile.joker {
-  background-color: var(--black-tile); color: var(--red-tile);
-  border: 2px dashed #00ff99;
-}
-.tile.joker.blue { color: var(--blue-tile); }
-.tile.joker.yellow { color: var(--yellow-tile); }
-.tile.dragging { opacity: 0.5; box-shadow: 0 0 15px #FFDC00; }
-.tile.over { border: 2px dashed #00ff99; }
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rummikub (Drag & Drop)</title>
+    
+    <link rel="stylesheet" href="css/styles.css"> 
+    
+    <style>
+        a.back-link {
+            display: inline-block;
+            margin-top: 25px;
+            color: #00ff99;
+            text-decoration: none;
+            font-size: 1.2em;
+            font-family: Arial, sans-serif;
+            background-color: #2e2e4d;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 2px solid #6441a5;
+        }
+        a.back-link:hover {
+            background-color: #44446a;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <h1>Rummikub</h1>
+        <div class="game-container">
+            <div class="player-container">
+                <h2>Mon Chevalet</h2>
+                <div class="player-hand" id="player-hand">
+                    </div>
+                <div class="player-actions">
+                    <button id="draw-button">Piocher</button>
+                    <button id="sort-group-button">Trier par Groupe</button>
+                    <button id="sort-run-button">Trier par Série</button>
+                </div>
+            </div>
+            
+            <div class="board-container">
+                <h2>Tapis Central</h2>
+                <div class="board" id="board">
+                    </div>
+                <button id="validate-board-button">Valider le Tapis</button>
+            </div>
+        </div>
+
+        <a href="../index.html" class="back-link">Retour au menu</a>
+    </div>
+    
+    <script src="js/game.js"></script> 
+</body>
+</html>
