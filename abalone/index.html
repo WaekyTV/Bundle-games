@@ -3,74 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abalone Original (Mouvement Amélioré)</title>
+    <title>Abalone (Règles Complètes 1v1)</title>
     <style>
-        /* Styles inchangés pour le visuel Hexagonal */
         body {
-            font-family: Arial, sans-serif;
-            background-color: #1a1a2e;
-            color: #e0e0e0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            user-select: none;
+            font-family: Arial, sans-serif; background-color: #1a1a2e; color: #e0e0e0;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px; user-select: none;
         }
         h1 { color: #00ff99; margin-bottom: 5px; }
         
         #game-area {
-            position: relative;
-            width: 600px;
-            height: 520px;
-            margin: 20px 0;
-            border: 5px solid #6441a5; 
-            border-radius: 10px;
-            background-color: #333;
+            position: relative; width: 600px; height: 520px; margin: 20px 0;
+            border: 5px solid #6441a5; border-radius: 10px; background-color: #333;
         }
         .position {
-            position: absolute;
-            width: 30px; 
-            height: 30px;
-            border-radius: 50%;
-            background-color: #111; 
-            border: 2px solid #222;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transform: translate(-50%, -50%); 
-            z-index: 10;
+            position: absolute; width: 30px; height: 30px; border-radius: 50%;
+            background-color: #111; border: 2px solid #222; cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            transform: translate(-50%, -50%); z-index: 10;
         }
         
-        /* BILLE ROUGE ET BLANCHE (Rouge au lieu de Noir pour l'esthétique) */
         .marble {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            cursor: pointer;
-            z-index: 20;
-            box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.5), 0 0 8px rgba(0, 0, 0, 0.5);
-            /* Ajout d'une transition pour le mouvement */
-            transition: transform 0.3s ease-in-out;
+            width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+            z-index: 20; box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.5), 0 0 8px rgba(0, 0, 0, 0.5);
+            transition: left 0.3s ease-in-out, top 0.3s ease-in-out; /* Animation de mouvement */
         }
         
-        .white { 
-            background: radial-gradient(circle at 10px 10px, #fff, #bbb);
-            border: 1px solid #777; 
-        }
-        .red { 
-            background: radial-gradient(circle at 10px 10px, #FF4136, #A00000); /* Changé à Rouge */
-            border: 1px solid #777;
-        }
+        .white { background: radial-gradient(circle at 10px 10px, #fff, #bbb); border: 1px solid #777; }
+        .red { background: radial-gradient(circle at 10px 10px, #FF4136, #A00000); border: 1px solid #777; }
         
         .selected { 
             box-shadow: 0 0 15px #FF8C00, inset 0 0 5px rgba(255, 255, 0, 0.8);
             border-color: #FF8C00 !important;
         }
         
-        /* Statut et Compteurs */
         #status { font-size: 1.2em; margin: 15px 0; min-height: 30px; color: #FFDC00; }
         #counters { display: flex; justify-content: space-around; width: 400px; margin-bottom: 10px; }
         button { background-color: #00ff99; border: none; color: #1a1a2e; padding: 10px 20px; font-size: 1em; font-weight: bold; border-radius: 5px; cursor: pointer; margin: 5px; }
@@ -109,40 +75,42 @@
         const WIN_COUNT = 6; 
 
         let boardState = {}; 
-        let currentPlayer = 'white'; // Blanc commence
+        let currentPlayer = 'white';
         let selectedMarbles = [];
         let ejectedCount = { white: 0, red: 0 };
         let gameActive = false;
 
+        // (q, r) Coordonnées axiales pour les 61 positions
         const ALL_POSITIONS = [
-            { q: -4, r: 4 }, { q: -3, r: 4 }, { q: -2, r: 4 }, { q: -1, r: 4 }, { q: 0, r: 4 },
-            { q: -4, r: 3 }, { q: -3, r: 3 }, { q: -2, r: 3 }, { q: -1, r: 3 }, { q: 0, r: 3 }, { q: 1, r: 3 },
-            { q: -4, r: 2 }, { q: -3, r: 2 }, { q: -2, r: 2 }, { q: -1, r: 2 }, { q: 0, r: 2 }, { q: 1, r: 2 }, { q: 2, r: 2 },
-            { q: -4, r: 1 }, { q: -3, r: 1 }, { q: -2, r: 1 }, { q: -1, r: 1 }, { q: 0, r: 1 }, { q: 1, r: 1 }, { q: 2, r: 1 }, { q: 3, r: 1 },
-            { q: -4, r: 0 }, { q: -3, r: 0 }, { q: -2, r: 0 }, { q: -1, r: 0 }, { q: 0, r: 0 }, { q: 1, r: 0 }, { q: 2, r: 0 }, { q: 3, r: 0 }, { q: 4, r: 0 },
-            { q: -3, r: -1 }, { q: -2, r: -1 }, { q: -1, r: -1 }, { q: 0, r: -1 }, { q: 1, r: -1 }, { q: 2, r: -1 }, { q: 3, r: -1 }, { q: 4, r: -1 },
-            { q: -2, r: -2 }, { q: -1, r: -2 }, { q: 0, r: -2 }, { q: 1, r: -2 }, { q: 2, r: -2 }, { q: 3, r: -2 }, { q: 4, r: -2 },
-            { q: -1, r: -3 }, { q: 0, r: -3 }, { q: 1, r: -3 }, { q: 2, r: -3 }, { q: 3, r: -3 }, { q: 4, r: -3 },
-            { q: 0, r: -4 }, { q: 1, r: -4 }, { q: 2, r: -4 }, { q: 3, r: -4 }, { q: 4, r: -4 },
+            [-4, 4], [-3, 4], [-2, 4], [-1, 4], [0, 4],
+            [-4, 3], [-3, 3], [-2, 3], [-1, 3], [0, 3], [1, 3],
+            [-4, 2], [-3, 2], [-2, 2], [-1, 2], [0, 2], [1, 2], [2, 2],
+            [-4, 1], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1],
+            [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [4, 0],
+            [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [4, -1],
+            [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [3, -2], [4, -2],
+            [-1, -3], [0, -3], [1, -3], [2, -3], [3, -3], [4, -3],
+            [0, -4], [1, -4], [2, -4], [3, -4], [4, -4],
         ];
 
+        // 6 directions (vecteurs)
         const HEX_DIRECTIONS = [
             { q: 1, r: 0 }, { q: 1, r: -1 }, { q: 0, r: -1 }, 
             { q: -1, r: 0 }, { q: -1, r: 1 }, { q: 0, r: 1 }
         ];
         
+        function getKey(q, r) { return `${q},${r}`; }
         function hexToPixel(q, r) {
             const x = TILE_RADIUS * (SQRT3 * q + SQRT3 / 2 * r);
             const y = TILE_RADIUS * (3 / 2 * r);
             return { x: x + MARGIN_X, y: y + MARGIN_Y };
         }
 
+        // Placement officiel (14 billes)
         function initialLayout(q, r) {
-            const key = `${q},${r}`;
-            // Zones de placement standard pour 14 billes (Rouge est au Nord)
-            const redZone = ["0,4", "-1,4", "-2,4", "-3,4", "-4,4", "1,3", "0,3", "-1,3", "-2,3", "-3,3", "2,2", "1,2", "0,2", "-1,2"];
-            const whiteZone = ["4,-4", "3,-4", "2,-4", "1,-4", "0,-4", "4,-3", "3,-3", "2,-3", "1,-3", "0,-3", "2,-2", "1,-2", "0,-2", "-1,-3"]; 
-            
+            const key = getKey(q, r);
+            const redZone = ["0,4", "-1,4", "-2,4", "-3,4", "-4,4", "1,3", "0,3", "-1,3", "-2,3", "-3,3", "0,2", "1,2", "-1,2", "-2,2"];
+            const whiteZone = ["0,-4", "1,-4", "2,-4", "3,-4", "4,-4", "-1,-3", "0,-3", "1,-3", "2,-3", "3,-3", "0,-2", "1,-2", "-1,-2", "2,-2"]; 
             if (redZone.includes(key)) return 'red';
             if (whiteZone.includes(key)) return 'white';
             return 0;
@@ -158,9 +126,8 @@
             ejectedCount = { white: 0, red: 0 };
             gameActive = true;
 
-            ALL_POSITIONS.forEach(pos => {
-                const { q, r } = pos;
-                const key = `${q},${r}`;
+            ALL_POSITIONS.forEach(([q, r]) => {
+                const key = getKey(q, r);
                 const pixel = hexToPixel(q, r);
 
                 const positionElement = document.createElement('div');
@@ -179,7 +146,6 @@
                     marble.classList.add('marble', player);
                     positionElement.appendChild(marble);
                 }
-
                 gameArea.appendChild(positionElement);
             });
             
@@ -187,6 +153,7 @@
             updateCounters();
         }
 
+        // Met à jour le visuel de sélection
         function renderBoard() {
             Object.values(boardState).forEach(state => {
                 const marbleElement = state.element.querySelector('.marble');
@@ -196,8 +163,7 @@
             });
 
             selectedMarbles.forEach(([q, r]) => {
-                const key = `${q},${r}`;
-                const state = boardState[key];
+                const state = boardState[getKey(q, r)];
                 if (state && state.element) {
                     const marbleElement = state.element.querySelector('.marble');
                     if (marbleElement) {
@@ -208,181 +174,235 @@
             updateCounters();
         }
 
+        // Vérifie si (q, r) est sur le plateau
+        function isOnBoard(q, r) {
+            return boardState.hasOwnProperty(getKey(q, r));
+        }
+
+        // Vérifie si deux billes sont adjacentes
         function isAdjacent(q1, r1, q2, r2) {
             const dq = q1 - q2;
             const dr = r1 - r2;
             return (Math.abs(dq) <= 1 && Math.abs(dr) <= 1 && Math.abs(dq + dr) <= 1);
         }
 
+        // Vérifie si une bille est adjacente au groupe sélectionné
         function isAdjacentToGroup(q, r) {
             return selectedMarbles.some(([sq, sr]) => isAdjacent(q, r, sq, sr));
         }
 
-        // Détermine la direction d'un mouvement unitaire
-        function getMovementDirection(targetQ, targetR) {
-            if (selectedMarbles.length === 0) return null;
-            const [q, r] = selectedMarbles[0];
-            const dirQ = targetQ - q;
-            const dirR = targetR - r;
+        // --- Gestion des Clics ---
+
+        function handlePositionClick(q, r) {
+            if (!gameActive) return;
             
-            // On vérifie que c'est bien une des 6 directions unitaires
-            for (const dir of HEX_DIRECTIONS) {
-                 if (dir.q === dirQ && dir.r === dirR) return dir;
+            const key = getKey(q, r);
+            const state = boardState[key];
+            const isSelected = selectedMarbles.some(m => m[0] === q && m[1] === r);
+            
+            // 1. Sélectionner/Désélectionner une bille amie
+            if (state.player === currentPlayer) {
+                if (isSelected) {
+                    selectedMarbles = selectedMarbles.filter(m => m[0] !== q || m[1] !== r);
+                } else if (selectedMarbles.length < 3) {
+                    if (selectedMarbles.length === 0 || isAdjacentToGroup(q, r)) {
+                         selectedMarbles.push([q, r]);
+                    }
+                }
             }
-            return null;
+            // 2. Tenter le Mouvement/Poussée (clic sur une case vide ou adverse)
+            else if (selectedMarbles.length > 0) {
+                tryMove(q, r);
+            }
+            renderBoard();
         }
 
-        // Vérifie si le groupe est aligné dans la direction du mouvement
-        function isGroupAligned(direction) {
-            if (selectedMarbles.length === 1) return true; // Toujours aligné
+        // --- Logique de Mouvement (Refonte Complète) ---
 
-            // Vérifie si la direction du mouvement est parallèle ou perpendiculaire à l'alignement des billes sélectionnées
-            const [q1, r1] = selectedMarbles[0];
-            const [q2, r2] = selectedMarbles[1];
+        function tryMove(targetQ, targetR) {
+            if (selectedMarbles.length === 0) return;
             
-            const alignQ = q2 - q1;
-            const alignR = r2 - r1;
-
-            // Mouvement en ligne (Sumito): le vecteur d'alignement est parallèle à la direction
-            if ((alignQ === direction.q && alignR === direction.r) || (alignQ === -direction.q && alignR === -direction.r)) {
-                 return 'INLINE';
+            const [moveType, direction] = validateMoveDirection(targetQ, targetR);
+            
+            if (moveType === 'INVALID') {
+                statusElement.textContent = "Mouvement invalide. Ciblez une case adjacente à votre groupe.";
+                return;
             }
-            
-            // Mouvement latéral (Broadside): le vecteur d'alignement est perpendiculaire à la direction
-            // (Simplification : on autorise le mouvement latéral s'il n'y a pas de bille devant)
-            // C'est très difficile à vérifier, on va supposer 'LATERAL' si ce n'est pas INLINE.
-            return 'LATERAL';
+
+            // Mouvement latéral (Broadside)
+            if (moveType === 'LATERAL') {
+                // Vérifier si toutes les cases cibles sont vides
+                for (const [q, r] of selectedMarbles) {
+                    const nq = q + direction.q;
+                    const nr = r + direction.r;
+                    if (!isOnBoard(nq, nr) || boardState[getKey(nq, nr)].player !== 0) {
+                        statusElement.textContent = "Mouvement latéral bloqué.";
+                        return;
+                    }
+                }
+                performMove(direction);
+                switchTurn();
+                return;
+            }
+
+            // Mouvement en ligne (Sumito)
+            if (moveType === 'INLINE') {
+                // Trouver la bille de tête
+                selectedMarbles.sort((a, b) => (a[0] * direction.q + a[1] * direction.r) - (b[0] * direction.q + b[1] * direction.r));
+                const [frontQ, frontR] = selectedMarbles[selectedMarbles.length - 1];
+                
+                let [pushCount, endQ, endR] = countOpponentLine(frontQ, frontR, direction);
+                
+                // Règle 1: Case vide
+                if (pushCount === 0) {
+                    performMove(direction);
+                    switchTurn();
+                    return;
+                }
+                
+                // Règle 2: Poussée (Sumito)
+                // (Taille sélection > nombre de billes poussées) ET (Taille sélection <= 3)
+                if (selectedMarbles.length > pushCount && selectedMarbles.length <= 3) {
+                    performPush(direction, endQ, endR);
+                    switchTurn();
+                    return;
+                }
+
+                statusElement.textContent = `Poussée impossible : ${selectedMarbles.length} (alliés) contre ${pushCount} (adversaires).`;
+            }
         }
 
-        // --- Logique de Poussée/Déplacement (Améliorée) ---
+        // Valide si le mouvement est en ligne (Sumito) ou latéral (Broadside)
+        function validateMoveDirection(targetQ, targetR) {
+            if (selectedMarbles.length === 1) {
+                // Mouvement d'une seule bille
+                const [q, r] = selectedMarbles[0];
+                const dirQ = targetQ - q;
+                const dirR = targetR - r;
+                for (const dir of HEX_DIRECTIONS) {
+                    if (dir.q === dirQ && dir.r === dirR) return ['INLINE', dir];
+                }
+            } else {
+                // Mouvement de groupe (2 ou 3 billes)
+                // Vérifie si le groupe est aligné
+                selectedMarbles.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+                let [q0, r0] = selectedMarbles[0];
+                let [q1, r1] = selectedMarbles[1];
+                const alignQ = q1 - q0;
+                const alignR = r1 - r0;
 
-        function tryMove(direction) {
-            if (selectedMarbles.length === 0) return false;
-            
-            selectedMarbles.sort((a, b) => (a[0] * direction.q + a[1] * direction.r) - (b[0] * direction.q + b[1] * direction.r)); // Tri dans le sens du mouvement
-            
-            const alignment = isGroupAligned(direction);
-            const [frontQ, frontR] = selectedMarbles[selectedMarbles.length - 1];
-            const nextKey = `${frontQ + direction.q},${frontR + direction.r}`;
-            
-            const nextState = boardState[nextKey] || { player: 'off-board' }; // Voisin ou hors plateau
+                // Vérifie si c'est un alignement valide (distance 1)
+                let isAligned = HEX_DIRECTIONS.some(d => d.q === alignQ && d.r === alignR);
+                if (!isAligned) return ['INVALID', null];
 
-            // 1. Déplacement Simple (cible vide)
-            if (nextState.player === 0) {
-                 performInlineMove(direction);
-                 return true;
-            }
-            
-            // 2. Cible Amie (Mouvement Latéral)
-            if (nextState.player === currentPlayer) {
-                 if (alignment === 'LATERAL') {
-                      performInlineMove(direction);
-                      return true;
-                 }
-                 // Sinon, mouvement bloqué
-                 statusElement.textContent = "Mouvement bloqué par une bille amie.";
-                 return false;
-            }
+                // Vérifie si les 3 billes sont alignées (si 3 billes)
+                if (selectedMarbles.length === 3) {
+                    let [q2, r2] = selectedMarbles[2];
+                    if (q2 - q1 !== alignQ || r2 - r1 !== alignR) return ['INVALID', null];
+                }
 
-            // 3. Poussée (cible adverse)
-            if (nextState.player !== 0 && nextState.player !== currentPlayer) {
-                 if (alignment === 'INLINE') {
-                     return tryPush(direction, [frontQ + direction.q, frontR + direction.r]);
-                 }
-                 // Poussée latérale interdite
-                 statusElement.textContent = "Poussée latérale interdite. Utilisez un mouvement en ligne.";
-                 return false;
-            }
-            
-            // 4. Hors Plateau
-            if (nextState.player === 'off-board') {
-                 // Si c'est un mouvement en ligne, on tente la poussée pour l'éjection
-                 if (alignment === 'INLINE') {
-                     return tryPush(direction, [frontQ + direction.q, frontR + direction.r]);
-                 }
-                 statusElement.textContent = "Mouvement hors plateau bloqué.";
-                 return false;
-            }
+                // Trouve la direction du mouvement
+                const [clickQ, clickR] = selectedMarbles[0];
+                const moveQ = targetQ - clickQ;
+                const moveR = targetR - clickR;
+                let moveDir = null;
+                for (const dir of HEX_DIRECTIONS) {
+                    if (dir.q === moveQ && dir.r === moveR) moveDir = dir;
+                }
 
-            return false;
+                if (!moveDir) return ['INVALID', null];
+                
+                // Mouvement en ligne (Sumito) : la direction est la même que l'alignement
+                if ((moveDir.q === alignQ && moveDir.r === alignR) || (moveDir.q === -alignQ && moveDir.r === -alignR)) {
+                    return ['INLINE', moveDir];
+                }
+                
+                // Mouvement latéral (Broadside) : la direction est perpendiculaire
+                return ['LATERAL', moveDir];
+            }
+            return ['INVALID', null];
         }
 
-        function performInlineMove(direction) {
-             // Déplace de l'arrière vers l'avant
-             for (let i = selectedMarbles.length - 1; i >= 0; i--) {
-                const [q, r] = selectedMarbles[i];
+        // Compte la ligne adverse à pousser
+        function countOpponentLine(q, r, direction) {
+            let count = 0;
+            let nq = q + direction.q;
+            let nr = r + direction.r;
+            let opponent = currentPlayer === 'white' ? 'red' : 'white';
+
+            while (isOnBoard(nq, nr)) {
+                if (boardState[getKey(nq, nr)].player === opponent) {
+                    count++;
+                    nq += direction.q;
+                    nr += direction.r;
+                } else if (boardState[getKey(nq, nr)].player === 0) {
+                    // Cible vide
+                    return [count, nq, nr];
+                } else {
+                    // Bloqué par un ami
+                    return [100, nq, nr]; // Chiffre élevé pour bloquer
+                }
+            }
+            // Cible hors plateau (éjection)
+            return [count, nq, nr];
+        }
+
+        // Déplacement simple (sans poussée)
+        function performMove(direction) {
+            // Tri de l'arrière vers l'avant
+            selectedMarbles.sort((a, b) => (b[0] * direction.q + b[1] * direction.r) - (a[0] * direction.q + a[1] * direction.r));
+
+            selectedMarbles.forEach(([q, r]) => {
+                const key = getKey(q, r);
                 const newQ = q + direction.q;
                 const newR = r + direction.r;
-                const key = `${q},${r}`;
-                const newKey = `${newQ},${newR}`;
+                const newKey = getKey(newQ, newR);
                 
                 const marble = boardState[key].element.querySelector('.marble');
                 
-                // Met à jour la bille
-                if (boardState[newKey] && boardState[key]) {
-                    boardState[newKey].player = boardState[key].player;
-                    boardState[newKey].element.appendChild(marble);
-                }
-
-                // Vide l'ancienne position
-                if (boardState[key]) {
-                    boardState[key].player = 0;
-                    boardState[key].element.innerHTML = '';
-                }
-             }
+                // Déplace la bille
+                boardState[newKey].player = boardState[key].player;
+                boardState[newKey].element.appendChild(marble);
+                boardState[key].player = 0;
+            });
         }
         
-        function tryPush(direction, startPos) {
-            const opponent = currentPlayer === 'white' ? 'red' : 'white';
-            let pushCount = 0;
-            let currentQ = startPos[0];
-            let currentR = startPos[1];
-            let opponentLine = [];
+        // Poussée (Sumito)
+        function performPush(direction, endQ, endR) {
+            let opponent = currentPlayer === 'white' ? 'red' : 'white';
+            
+            // 1. Déplace la ligne adverse
+            let q = endQ - direction.q;
+            let r = endR - direction.r;
 
-            // 1. Compte la ligne adverse
-            while (isOnBoard(currentQ, currentR) && boardState[`${currentQ},${currentR}`] && boardState[`${currentQ},${currentR}`].player === opponent) {
-                opponentLine.push([currentQ, currentR]);
-                pushCount++;
-                currentQ += direction.q;
-                currentR += direction.r;
+            while (boardState[getKey(q, r)].player === opponent) {
+                let nq = q + direction.q;
+                let nr = r + direction.r;
+                let key = getKey(q, r);
+                let newKey = getKey(nq, nr);
+                
+                const marble = boardState[key].element.querySelector('.marble');
+
+                if (isOnBoard(nq, nr)) {
+                    boardState[newKey].player = opponent;
+                    boardState[newKey].element.appendChild(marble);
+                } else {
+                    // Éjection !
+                    ejectedCount[opponent]++;
+                }
+                
+                boardState[key].player = 0;
+                
+                q -= direction.q;
+                r -= direction.r;
             }
             
-            // 2. Règle de Poussée : Taille Joueur > Taille Opposant (et max 3 billes)
-            if (selectedMarbles.length > pushCount && selectedMarbles.length <= 3 && pushCount > 0) {
-                // 2.1. Déplace la chaîne adverse + éjection
-                for (let i = opponentLine.length - 1; i >= 0; i--) {
-                    const [q, r] = opponentLine[i];
-                    const key = `${q},${r}`;
-                    const newQ = q + direction.q;
-                    const newR = r + direction.r;
-                    const newKey = `${newQ},${newR}`;
+            // 2. Déplace le groupe du joueur
+            performMove(direction);
 
-                    const marble = boardState[key].element.querySelector('.marble');
-
-                    if (!isOnBoard(newQ, newR)) { // Hors plateau -> Éjection
-                         ejectedCount[opponent]++;
-                         boardState[key].player = 0;
-                         boardState[key].element.innerHTML = '';
-                    } else {
-                         // Déplace bille adverse
-                         boardState[newKey].player = opponent;
-                         boardState[newKey].element.appendChild(marble);
-                         boardState[key].player = 0;
-                         boardState[key].element.innerHTML = '';
-                    }
-                 }
-
-                 // 2.2. Déplace le groupe du joueur
-                 performInlineMove(direction);
-                
-                 if (ejectedCount[opponent] >= WIN_COUNT) {
-                     endGame(currentPlayer);
-                 }
-                 
-                 return true;
+            if (ejectedCount[opponent] >= WIN_COUNT) {
+                endGame(currentPlayer);
             }
-            statusElement.textContent = `Poussée impossible : ${selectedMarbles.length} contre ${pushCount} ou trop de billes.`;
-            return false;
         }
 
         // --- Fonctions de Contrôle ---
@@ -401,7 +421,7 @@
         }
 
         function updateStatus() {
-            statusElement.textContent = `Au tour de ${currentPlayer.toUpperCase()}. Sélectionnez une à trois billes adjacentes.`;
+            statusElement.textContent = `Au tour de ${currentPlayer.toUpperCase()}. Sélectionnez 1, 2 ou 3 billes.`;
             whiteOutCounter.textContent = `Billes Blanches Éjectées : ${ejectedCount.white}/${WIN_COUNT}`;
             redOutCounter.textContent = `Billes Rouges Éjectées : ${ejectedCount.red}/${WIN_COUNT}`;
         }
@@ -409,7 +429,6 @@
         // --- Événements ---
         restartButton.addEventListener('click', initializeGame);
         
-        // Lancement du jeu au chargement de la page
         initializeGame();
     </script>
 </body>
