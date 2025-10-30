@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu du Pendu</title>
+    <style>
+        /* Thème sombre cohérent */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align: items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+            box-sizing: border-box; /* S'assure que le padding ne casse pas la mise en page */
+        }
+        h1 {
+            color: #00ff99; /* Vert néon */
+            text-align: center;
+        }
+        
+        /* Zone du pendu (dessin ASCII) */
+        #hangman-art {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.2em;
+            white-space: pre; /* Conserve les espaces et sauts de ligne */
+            color: #FF8C00; /* Orange rétro */
+            line-height: 1.1;
+            text-align: center;
+        }
+
+        /* Le mot à deviner (ex: _ _ _ _ ) */
+        #word-display {
+            font-size: 2.5em;
+            letter-spacing: 10px; /* Espace les underscores */
+            margin: 20px 0;
+            text-align: center;
+            /* S'assure que les longs mots ne débordent pas */
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+        
+        /* Le clavier virtuel */
+        #keyboard {
+            display: grid;
+            /* Clavier flexible */
+            grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+            gap: 5px;
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+        }
+        .key {
+            background-color: #2e2e4d;
+            border: 2px solid #6441a5; /* Violet */
+            color: #e0e0e0;
+            font-size: 1.2em;
+            font-weight: bold;
+            padding: 10px 5px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        .key:hover {
+            background-color: #44446a;
+        }
+        /* Style pour les touches désactivées (cliquées) */
+        .key.disabled {
+            background-color: #444;
+            color: #777;
+            border-color: #555;
+            pointer-events: none; /* Non cliquable */
+        }
+
+        #status {
+            font-size: 1.5em;
+            height: 30px;
+            margin: 15px 0;
+            color: #fff;
+            text-align: center;
+        }
+        
+        /* Conteneur pour les boutons */
+        .controls {
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        /* Boutons et lien */
+        button {
+            background-color: #00ff99;
+            border: none;
+            color: #1a1a2e;
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        a {
+            display: inline-block;
+            margin-top: 15px;
+            color: #00ff99;
+            text-decoration: none;
+            font-size: 1.1em;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Le Pendu</h1>
+    
+    <div id="hangman-art"></div>
+    
+    <div id="word-display"></div>
+    
+    <div id="status"></div>
+    
+    <div id="keyboard"></div>
+    
+    <div class="controls">
+        <button id="restartButton">Nouveau Mot</button>
+        <a href="../index.html">Retour au menu</a>
+    </div>
+
+    <script>
+        const wordDisplay = document.getElementById('word-display');
+        const keyboardElement = document.getElementById('keyboard');
+        const hangmanArtElement = document.getElementById('hangman-art');
+        const statusElement = document.getElementById('status');
+        const restartButton = document.getElementById('restartButton');
+
+        // **********
+        // NOTE : C'est ici qu'on appellera l'IA plus tard.
+        // Pour l'instant, on utilise une liste simple.
+        // **********
+        const wordList = [
+            "POXEL", "ARCADE", "DISCORD", "GEMINI", "PYTHON", "CLASSEMENT", 
+            "VICTOIRE", "CLAVIER", "ORDINATEUR", "PROGRAMME"
+        ];
+
+        // Les étapes du dessin du pendu
+        const hangmanStages = [
+`
+ +---+
+ |   |
+     |
+     |
+     |
+     |
+=========
+`,
+`
+ +---+
+ |   |
+ O   |
+     |
+     |
+     |
+=========
+`,
+`
+ +---+
+ |   |
+ O   |
+ |   |
+     |
+     |
+=========
+`,
+`
+ +---+
+ |   |
+ O   |
+/|   |
+     |
+     |
+=========
+`,
+`
+ +---+
+ |   |
+ O   |
+/|\\  |
+     |
+     |
+=========
+`,
+`
+ +---+
+ |   |
+ O   |
+/|\\  |
+/    |
+     |
+=========
+`,
+`
+ +---+
+ |   |
+ O   |
+/|\\  |
+/ \\  |
+     |
+=========
+`,
+`
+ +---+
+ |   |
+[O]  |  <- PERDU
+/|\\  |
+/ \\  |
+     |
+=========
+`
+        ];
+
+        let wordToGuess = '';
+        let guessedLetters = [];
+        let wrongGuesses = 0;
+        let gameActive = true;
+
+        // Fonction pour démarrer/redémarrer le jeu
+        function initializeGame() {
+            // Choisir un mot au hasard
+            wordToGuess = wordList[Math.floor(Math.random() * wordList.length)];
+            
+            guessedLetters = [];
+            wrongGuesses = 0;
+            gameActive = true;
+            
+            statusElement.textContent = "";
+            drawHangman();
+            drawWordDisplay();
+            drawKeyboard();
+        }
+
+        // Dessine le mot (ex: P _ X E L)
+        function drawWordDisplay() {
+            let display = wordToGuess.split('').map(letter => {
+                return guessedLetters.includes(letter) ? letter : '_';
+            }).join(' ');
+            wordDisplay.textContent = display;
+        }
+
+        // Dessine le pendu
+        function drawHangman() {
+            hangmanArtElement.textContent = hangmanStages[wrongGuesses];
+        }
+
+        // Génère le clavier virtuel
+        function drawKeyboard() {
+            keyboardElement.innerHTML = ''; // Vide l'ancien clavier
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            
+            alphabet.split('').forEach(letter => {
+                const key = document.createElement('div');
+                key.classList.add('key');
+                key.textContent = letter;
+                key.addEventListener('click', () => handleGuess(letter));
+                
+                // Si la lettre a déjà été cliquée, on la désactive
+                if (guessedLetters.includes(letter)) {
+                    key.classList.add('disabled');
+                }
+                
+                keyboardElement.appendChild(key);
+            });
+        }
+
+        // Gère le clic sur une lettre
+        function handleGuess(letter) {
+            if (!gameActive || guessedLetters.includes(letter)) {
+                return; // Jeu fini ou lettre déjà jouée
+            }
+            
+            guessedLetters.push(letter);
+            
+            // 1. La lettre est dans le mot
+            if (wordToGuess.includes(letter)) {
+                drawWordDisplay();
+            } 
+            // 2. La lettre n'est pas dans le mot
+            else {
+                wrongGuesses++;
+                drawHangman();
+            }
+            
+            // Met à jour le clavier (pour désactiver la touche cliquée)
+            drawKeyboard();
+            
+            // 3. Vérifie la victoire ou la défaite
+            checkGameState();
+        }
+        
+        // Vérifie si le jeu est gagné ou perdu
+        function checkGameState() {
+            // Victoire
+            // On vérifie si chaque lettre du mot est incluse dans les lettres devinées
+            if (wordToGuess.split('').every(letter => guessedLetters.includes(letter))) {
+                gameActive = false;
+                statusElement.textContent = "🎉 GAGNÉ ! 🎉";
+                // C'est ici qu'on enverra l'XP au bot
+                console.log("Le joueur a gagné !");
+            }
+            // Défaite
+            else if (wrongGuesses >= hangmanStages.length - 1) {
+                gameActive = false;
+                statusElement.textContent = `PERDU ! Le mot était : ${wordToGuess}`;
+                wordDisplay.textContent = wordToGuess.split('').join(' ');
+            }
+        }
+
+        // Lie le bouton "Nouveau Mot"
+        restartButton.addEventListener('click', initializeGame);
+
+        // Lancement du jeu au chargement de la page
+        initializeGame();
+    </script>
+</body>
+</html>
