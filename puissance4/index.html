@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu du Puissance 4</title>
+    <style>
+        /* Thème sombre cohérent avec le menu */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            color: #00ff99; /* Vert néon */
+        }
+        
+        /* Conteneur de la grille de jeu */
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(7, 60px); /* 7 colonnes */
+            grid-template-rows: repeat(6, 60px); /* 6 lignes */
+            gap: 5px;
+            background-color: #027afa; /* Bleu néon (la grille) */
+            border: 5px solid #014a8f;
+            border-radius: 10px;
+            padding: 5px;
+            position: relative; /* Pour les "jetons" */
+        }
+        
+        /* Les cases (trous) */
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: #1a1a2e; /* Couleur du fond (trou) */
+            border-radius: 50%; /* Trous ronds */
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        /* Les jetons */
+        .token {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin: 5px; /* Centrer le jeton dans la case de 60px */
+            box-sizing: border-box; /* Pour que la bordure soit incluse */
+        }
+        .token.red {
+            background-color: #FF4136; /* Rouge */
+            border: 3px solid #b32d25;
+        }
+        .token.yellow {
+            background-color: #FFDC00; /* Jaune */
+            border: 3px solid #b39b00;
+        }
+        
+        /* Colonnes cliquables (superposées à la grille) */
+        #click-targets {
+            display: grid;
+            grid-template-columns: repeat(7, 60px);
+            gap: 5px;
+            position: absolute;
+            top: 5px; /* Aligné avec le padding de la grille */
+            left: 5px;
+            padding: 5px 0; /* Simule le padding haut/bas */
+        }
+        .column-target {
+            width: 60px;
+            height: 370px; /* 6 * 60px + 5 * 5px */
+            cursor: pointer;
+            z-index: 10;
+        }
+        .column-target:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        #status {
+            font-size: 1.5em;
+            height: 30px;
+            margin: 20px 0;
+            color: #fff;
+        }
+        
+        /* Boutons et lien */
+        button {
+            background-color: #00ff99;
+            border: none;
+            color: #1a1a2e;
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        a {
+            margin-top: 15px;
+            color: #00ff99;
+            text-decoration: none;
+            font-size: 1.1em;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Puissance 4 (VS IA)</h1>
+    <div id="status">C'est à votre tour (Rouge)</div>
+    
+    <div id="game-container" style="position: relative;">
+        <div id="game-board"></div>
+        <div id="click-targets"></div>
+    </div>
+    
+    <button id="restartButton">Recommencer</button>
+    <a href="../index.html">Retour au menu</a>
+
+    <script>
+        const ROWS = 6;
+        const COLS = 7;
+
+        const boardElement = document.getElementById('game-board');
+        const statusElement = document.getElementById('status');
+        const restartButton = document.getElementById('restartButton');
+        const clickTargetsElement = document.getElementById('click-targets');
+        
+        let boardState = []; // Tableau 2D (lignes, colonnes)
+        let cells = []; // Tableau 2D pour les éléments HTML
+        
+        let currentPlayer = 'red'; // Le joueur est 'red'
+        let gameActive = true;
+
+        // Fonction pour démarrer/redémarrer le jeu
+        function initializeGame() {
+            boardElement.innerHTML = '';
+            clickTargetsElement.innerHTML = '';
+            boardState = [];
+            cells = [];
+            
+            // 1. Créer la structure de données (boardState) et la grille visuelle (cells)
+            for (let r = 0; r < ROWS; r++) {
+                let rowState = [];
+                let rowCells = [];
+                for (let c = 0; c < COLS; c++) {
+                    rowState.push(null); // 'null' = case vide
+                    
+                    // Crée la case visuelle (le trou)
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    boardElement.appendChild(cell);
+                    rowCells.push(cell);
+                }
+                boardState.push(rowState);
+                cells.push(rowCells);
+            }
+            
+            // 2. Créer les 7 colonnes cliquables
+            for (let c = 0; c < COLS; c++) {
+                const target = document.createElement('div');
+                target.classList.add('column-target');
+                target.dataset.col = c;
+                target.addEventListener('click', handleColumnClick);
+                clickTargetsElement.appendChild(target);
+            }
+
+            currentPlayer = 'red';
+            gameActive = true;
+            statusElement.textContent = "C'est à votre tour (Rouge)";
+        }
+
+        // Gère le clic du joueur sur une colonne
+        function handleColumnClick(e) {
+            if (!gameActive || currentPlayer !== 'red') return;
+
+            const col = parseInt(e.target.dataset.col);
+            
+            // Trouver la case vide la plus basse dans cette colonne (gravité)
+            const row = findNextOpenRow(col);
+
+            if (row === -1) {
+                // Colonne pleine
+                statusElement.textContent = "Cette colonne est pleine !";
+                setTimeout(() => {
+                    if (gameActive && currentPlayer === 'red') {
+                         statusElement.textContent = "C'est à votre tour (Rouge)";
+                    }
+                }, 1500);
+                return;
+            }
+
+            // Le joueur joue
+            makeMove(row, col, 'red');
+
+            // Vérifier si le jeu continue
+            if (gameActive) {
+                currentPlayer = 'yellow';
+                statusElement.textContent = "Tour de l'IA (Jaune)...";
+                // L'IA joue après 500ms
+                setTimeout(aiMove, 500);
+            }
+        }
+        
+        // Gère le tour de l'IA (très simple)
+        function aiMove() {
+            if (!gameActive) return;
+
+            // 1. L'IA peut-elle gagner ?
+            let winningMove = findWinningMove('yellow');
+            if (winningMove !== -1) {
+                const row = findNextOpenRow(winningMove);
+                makeMove(row, winningMove, 'yellow');
+                endTurn();
+                return;
+            }
+            
+            // 2. Le joueur peut-il gagner ? (Bloquer)
+            let blockingMove = findWinningMove('red');
+            if (blockingMove !== -1) {
+                const row = findNextOpenRow(blockingMove);
+                makeMove(row, blockingMove, 'yellow');
+                endTurn();
+                return;
+            }
+            
+            // 3. Sinon, jouer au hasard
+            let availableCols = [];
+            for (let c = 0; c < COLS; c++) {
+                if (boardState[0][c] === null) { // Si la case du haut est vide
+                    availableCols.push(c);
+                }
+            }
+            
+            if (availableCols.length > 0) {
+                 const col = availableCols[Math.floor(Math.random() * availableCols.length)];
+                 const row = findNextOpenRow(col);
+                 makeMove(row, col, 'yellow');
+                 endTurn();
+            }
+        }
+        
+        // Trouve une colonne où 'player' peut gagner
+        function findWinningMove(player) {
+            for (let c = 0; c < COLS; c++) {
+                let r = findNextOpenRow(c);
+                if (r !== -1) {
+                    boardState[r][c] = player; // Essayer le coup
+                    if (checkWin(player)) {
+                        boardState[r][c] = null; // Annuler le coup
+                        return c; // Colonne gagnante trouvée
+                    }
+                    boardState[r][c] = null; // Annuler le coup
+                }
+            }
+            return -1; // Pas de coup gagnant
+        }
+        
+        // Change le tour après le coup de l'IA
+        function endTurn() {
+            if (gameActive) {
+                currentPlayer = 'red';
+                statusElement.textContent = "C'est à votre tour (Rouge)";
+            }
+        }
+
+        // Trouve la ligne la plus basse vide
+        function findNextOpenRow(col) {
+            for (let r = ROWS - 1; r >= 0; r--) { // De bas en haut
+                if (boardState[r][col] === null) {
+                    return r;
+                }
+            }
+            return -1; // Colonne pleine
+        }
+
+        // Fonction principale pour jouer un coup
+        function makeMove(row, col, player) {
+            boardState[row][col] = player;
+            
+            // Crée le jeton visuel et l'ajoute à la case
+            const token = document.createElement('div');
+            token.classList.add('token', player);
+            cells[row][col].appendChild(token); // Ajoute le jeton dans la case
+
+            if (checkWin(player)) {
+                endGame(false, player);
+            } else if (boardState.flat().every(cell => cell !== null)) {
+                endGame(true); // Égalité
+            }
+        }
+
+        // Vérifie la victoire
+        function checkWin(player) {
+            // Horizontal
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c <= COLS - 4; c++) {
+                    if (boardState[r][c] === player &&
+                        boardState[r][c+1] === player &&
+                        boardState[r][c+2] === player &&
+                        boardState[r][c+3] === player) {
+                        return true;
+                    }
+                }
+            }
+            // Vertical
+            for (let c = 0; c < COLS; c++) {
+                for (let r = 0; r <= ROWS - 4; r++) {
+                    if (boardState[r][c] === player &&
+                        boardState[r+1][c] === player &&
+                        boardState[r+2][c] === player &&
+                        boardState[r+3][c] === player) {
+                        return true;
+                    }
+                }
+            }
+            // Diagonale (descendante)
+            for (let r = 0; r <= ROWS - 4; r++) {
+                for (let c = 0; c <= COLS - 4; c++) {
+                    if (boardState[r][c] === player &&
+                        boardState[r+1][c+1] === player &&
+                        boardState[r+2][c+2] === player &&
+                        boardState[r+3][c+3] === player) {
+                        return true;
+                    }
+                }
+            }
+            // Diagonale (ascendante)
+            for (let r = 3; r < ROWS; r++) {
+                for (let c = 0; c <= COLS - 4; c++) {
+                    if (boardState[r][c] === player &&
+                        boardState[r-1][c+1] === player &&
+                        boardState[r-2][c+2] === player &&
+                        boardState[r-3][c+3] === player) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Gère la fin de partie
+        function endGame(draw, winner = null) {
+            gameActive = false;
+            if (draw) {
+                statusElement.textContent = "Égalité !";
+            } else {
+                statusElement.textContent = `Le joueur ${winner === 'red' ? 'Rouge' : 'Jaune'} a gagné !`;
+                
+                // C'est ici qu'on ajoutera la connexion à ton bot (pour l'XP)
+                if (winner === 'red') {
+                    console.log("Le joueur (Rouge) a gagné !");
+                }
+            }
+        }
+
+        // Lie le bouton "Recommencer"
+        restartButton.addEventListener('click', initializeGame);
+
+        // Lancement du jeu
+        initializeGame();
+    </script>
+</body>
+</html>
