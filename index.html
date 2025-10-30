@@ -18,7 +18,7 @@
         }
         .container {
             width: 100%;
-            max-width: 900px;
+            max-width: 1000px; /* Légèrement plus large pour les 11 boutons */
             text-align: center;
         }
         h1 {
@@ -29,7 +29,7 @@
         }
         .game-grid {
             display: grid;
-            /* Crée une grille flexible qui s'adapte à la taille de l'écran */
+            /* 4 colonnes sur grand écran, s'adapte sur mobile */
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
         }
@@ -43,18 +43,20 @@
             font-size: 1.2em;
             font-weight: bold;
             transition: transform 0.3s, box-shadow 0.3s;
+            text-align: center;
+            display: block; /* Important pour que le lien prenne toute la case */
         }
         .game-card:hover {
             transform: translateY(-5px); /* Effet de "soulèvement" */
             box-shadow: 0 0 15px #6441a5;
             color: #fff;
         }
-        /* Style pour les jeux que tu n'as pas encore ajoutés */
+        /* Classe non utilisée mais gardée pour la cohérence */
         .game-card.disabled {
             background-color: #444;
             border-color: #666;
             color: #888;
-            pointer-events: none; /* Non cliquable */
+            pointer-events: none;
         }
     </style>
 </head>
@@ -63,56 +65,50 @@
     <div class="container">
         <h1>Poxel Arcade</h1>
         
+        <div id="status">
+             <p style="color: #FFDC00;">💡 Les jeux sont maintenant actifs. Les règles de gain d'XP sont dans le code.</p>
+        </div>
+
         <div class="game-grid">
+            
+            <a href="morpion/index.html" class="game-card">
+                Morpion (VS IA)
+            </a>
+            <a href="pfc/index.html" class="game-card">
+                P-F-Ciseaux (VS BOT)
+            </a>
+            <a href="pendu/index.html" class="game-card">
+                Pendu (Mots fixes)
+            </a>
+            <a href="snake/index.html" class="game-card">
+                Snake
+            </a>
+            <a href="demineur/index.html" class="game-card">
+                Démineur
+            </a>
+            
+            <a href="puissance4/index.html" class="game-card">
+                Puissance 4
+            </a>
+            <a href="dames/index.html" class="game-card">
+                Dames
+            </a>
+            <a href="moulin/index.html" class="game-card">
+                Jeu du Moulin
+            </a>
+            <a href="echecs/index.html" class="game-card">
+                Échecs
+            </a>
 
-    <a href="morpion/index.html" class="game-card">
-        Morpion
-    </a>
-
-    <a href="puissance4/index.html" class="game-card">
-        Puissance 4
-    </a>
-
-    <a href="snake/index.html" class="game-card">
-        Snake
-    </a>
-
-    <a href="demineur/index.html" class="game-card">
-        Démineur
-    </a>
-
-    <a href="pendu/index.html" class="game-card">
-        Pendu
-    </a>
-
-    <a href="pfc/index.html" class="game-card">
-        P-F-Ciseaux
-    </a>
-
-    <a href="echecs/index.html" class="game-card">
-        Échecs
-    </a>
-
-    <a href="dames/index.html" class="game-card">
-        Dames
-    </a>
-
-    <a href="moulin/index.html" class="game-card">
-        Jeu du Moulin
-    </a>
-
-    <a href="rumikube/index.html" class="game-card">
-    Rummikub
-    </a>
-
-    <a href="abalone/index.html" class="game-card">
-        Abalone
-    </a>
-
-</div>
+            <a href="rumikube/index.html" class="game-card">
+                Rummikub (Validation Comb.)
+            </a>
+            <a href="abalone/index.html" class="game-card">
+                Abalone (Hexagonal Simplifié)
+            </a>
+            
+            </div>
     </div>
 
 </body>
 </html>
-
-Correction: Activation Rubik's et Abalone.
