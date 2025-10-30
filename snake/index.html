@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu du Snake</title>
+    <style>
+        /* Thème sombre cohérent */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            color: #00ff99; /* Vert néon */
+        }
+        
+        /* La zone de jeu */
+        #gameCanvas {
+            background-color: #000;
+            border: 4px solid #6441a5; /* Violet néon */
+        }
+        
+        #status {
+            font-size: 1.5em;
+            height: 30px;
+            margin: 10px 0;
+            color: #fff;
+        }
+        
+        /* Boutons et lien */
+        button {
+            background-color: #00ff99;
+            border: none;
+            color: #1a1a2e;
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        a {
+            margin-top: 15px;
+            color: #00ff99;
+            text-decoration: none;
+            font-size: 1.1em;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Snake</h1>
+    
+    <div id="status">Score : 0</div>
+    
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    
+    <div>
+        <button id="restartButton">Recommencer</button>
+        <a href="../index.html" style="margin-left: 15px;">Retour au menu</a>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusElement = document.getElementById('status');
+        const restartButton = document.getElementById('restartButton');
+
+        const box = 20; // Taille d'une case (400px / 20 = 20 cases)
+        let score = 0;
+        let snake = [];
+        let food;
+        let direction;
+        let game; // Variable pour la boucle de jeu (setInterval)
+        let gameActive = false;
+
+        // Fonction pour démarrer/redémarrer le jeu
+        function initializeGame() {
+            // Arrête l'ancienne boucle de jeu si elle existe
+            if (game) {
+                clearInterval(game);
+            }
+            
+            // Réinitialise les variables
+            snake = [];
+            snake[0] = { x: 10 * box, y: 10 * box }; // Serpent au milieu
+            
+            score = 0;
+            direction = null; // Aucune direction au début
+            statusElement.textContent = "Score : 0";
+            
+            spawnFood();
+            
+            gameActive = true;
+            // Démarre la nouvelle boucle de jeu (100ms = 10 images/sec)
+            game = setInterval(draw, 100);
+        }
+        
+        // Place la nourriture aléatoirement
+        function spawnFood() {
+            food = {
+                x: Math.floor(Math.random() * 20) * box,
+                y: Math.floor(Math.random() * 20) * box
+            };
+            
+            // S'assurer que la nourriture n'est pas sur le serpent
+            for (let i = 0; i < snake.length; i++) {
+                if (food.x === snake[i].x && food.y === snake[i].y) {
+                    spawnFood(); // Relancer si c'est le cas
+                }
+            }
+        }
+
+        // Gère les contrôles (flèches du clavier)
+        function setDirection(event) {
+            // 37=Gauche, 38=Haut, 39=Droite, 40=Bas
+            if (event.keyCode === 37 && direction !== 'RIGHT') {
+                direction = 'LEFT';
+            } else if (event.keyCode === 38 && direction !== 'DOWN') {
+                direction = 'UP';
+            } else if (event.keyCode === 39 && direction !== 'LEFT') {
+                direction = 'RIGHT';
+            } else if (event.keyCode === 40 && direction !== 'UP') {
+                direction = 'DOWN';
+            }
+        }
+        document.addEventListener('keydown', setDirection);
+
+        // Vérifie les collisions (avec les murs ou soi-même)
+        function checkCollision(head) {
+            // Murs
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
+                return true;
+            }
+            // Soi-même (vérifie si la tête touche une partie du corps)
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Fonction principale de dessin (la boucle de jeu)
+        function draw() {
+            if (!gameActive) return;
+
+            // 1. Efface le canvas
+            ctx.fillStyle = "#000"; // Fond noir
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Dessine le serpent
+            for (let i = 0; i < snake.length; i++) {
+                ctx.fillStyle = (i === 0) ? "#00ff99" : "#00cc7a"; // Tête vert néon, corps plus sombre
+                ctx.fillRect(snake[i].x, snake[i].y, box, box);
+                
+                ctx.strokeStyle = "#1a1a2e"; // Grille subtile
+                ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+            }
+
+            // 3. Dessine la nourriture
+            ctx.fillStyle = "#FF8C00"; // Orange rétro
+            ctx.fillRect(food.x, food.y, box, box);
+
+            // 4. Calcule la nouvelle position de la tête
+            let snakeX = snake[0].x;
+            let snakeY = snake[0].y;
+
+            if (direction === 'LEFT') snakeX -= box;
+            if (direction === 'UP') snakeY -= box;
+            if (direction === 'RIGHT') snakeX += box;
+            if (direction === 'DOWN') snakeY += box;
+
+            // 5. Gère la nourriture
+            if (snakeX === food.x && snakeY === food.y) {
+                score++;
+                statusElement.textContent = "Score : " + score;
+                spawnFood();
+                // On ne retire pas la queue (le serpent grandit)
+            } else {
+                // Si pas de nourriture, on retire la queue
+                snake.pop();
+            }
+
+            // 6. Crée la nouvelle tête
+            let newHead = { x: snakeX, y: snakeY };
+
+            // 7. Vérifie la défaite
+            if (checkCollision(newHead)) {
+                clearInterval(game); // Arrête le jeu
+                gameActive = false;
+                statusElement.textContent = `Perdu ! Score final : ${score}`;
+                // C'est ici qu'on enverra l'XP au bot plus tard
+                console.log(`Le joueur a perdu. Score: ${score}`);
+            }
+
+            // 8. Ajoute la nouvelle tête
+            snake.unshift(newHead);
+        }
+
+        // Lie le bouton "Recommencer"
+        restartButton.addEventListener('click', initializeGame);
+
+        // Lancement du jeu
+        initializeGame();
+    </script>
+</body>
+</html>
